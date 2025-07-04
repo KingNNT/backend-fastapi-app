@@ -1,0 +1,14 @@
+{
+  "include": [
+    "app"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "**/.pytest_cache"
+  ],
+  "pythonVersion": "3.12",
+  "typeCheckingMode": "basic",
+  "reportUnnecessaryTypeIgnoreComment": false,
+  "reportMissingImports": false,
+  "reportAttributeAccessIssue": "warning"
+}
