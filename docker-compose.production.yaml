@@ -6,26 +6,6 @@ volumes:
     mongodb_data:
 
 services:
-    mongodb:
-        container_name: ${APP_NAME}-mongodb
-        hostname: ${APP_NAME}-mongodb
-        image: mongo:7.0
-        restart: unless-stopped
-        networks:
-            - network_app
-        environment:
-            MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME}
-            MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD}
-            MONGO_INITDB_DATABASE: ${MONGODB_DATABASE}
-        volumes:
-            - mongodb_data:/data/db
-        healthcheck:
-            test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-            interval: 30s
-            timeout: 10s
-            retries: 3
-            start_period: 40s
-
     python:
         container_name: ${APP_NAME}-server_python
         hostname: ${APP_NAME}-server_python
@@ -55,6 +35,26 @@ services:
                     "--fail",
                     "http://127.0.0.1:8000/health-check",
                 ]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 40s
+
+    mongodb:
+        container_name: ${APP_NAME}-mongodb
+        hostname: ${APP_NAME}-mongodb
+        image: mongo:7.0
+        restart: unless-stopped
+        networks:
+            - network_app
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME}
+            MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD}
+            MONGO_INITDB_DATABASE: ${MONGODB_DATABASE}
+        volumes:
+            - mongodb_data:/data/db
+        healthcheck:
+            test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
             interval: 30s
             timeout: 10s
             retries: 3

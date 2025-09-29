@@ -3,15 +3,25 @@ from uuid import UUID
 
 from beanie import PydanticObjectId
 
-from app.internal.dtos.user import UserCreate, UserResponse, UserUpdate
-from app.internal.models.user import User
-from app.internal.repositories.user import UserRepository
-from app.exceptions import UserAlreadyExists, UserNotFound
+from app.internal.dtos import UserCreate, UserResponse, UserUpdate
+from app.internal.models import User
+from app.internal.repositories import UserRepository
+from app.internal.exceptions import UserAlreadyExists, UserNotFound
 
 
 class UserService:
+    _instance = None
+    _initialized = False
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(UserService, cls).__new__(cls)
+        return cls._instance
+
     def __init__(self):
-        self.repository = UserRepository()
+        if not self._initialized:
+            self.repository = UserRepository()
+            UserService._initialized = True
 
     async def create_user(
         self, user_data: UserCreate, created_by: UUID | None = None
@@ -50,8 +60,16 @@ class UserService:
 
         return UserResponse(**user.model_dump())
 
-    async def get_users(self, skip: int = 0, limit: int = 100) -> list[UserResponse]:
-        users = await self.repository.get_all(skip=skip, limit=limit)
+    async def get_users(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        email: str | None = None,
+        username: str | None = None,
+    ) -> list[UserResponse]:
+        users = await self.repository.get_all(
+            skip=skip, limit=limit, email=email, username=username
+        )
         return [UserResponse(**user.model_dump()) for user in users]
 
     async def update_user(
@@ -100,14 +118,11 @@ class UserService:
         await self.repository.delete(user)
         return True
 
-    async def get_user_by_email(self, email: str) -> UserResponse:
-        user = await self.repository.get_by_email(email)
-        if not user:
-            raise UserNotFound(email=email)
-        return UserResponse(**user.model_dump())
 
-    async def get_user_by_username(self, username: str) -> UserResponse:
-        user = await self.repository.get_by_username(username)
-        if not user:
-            raise UserNotFound(f"username '{username}'")
-        return UserResponse(**user.model_dump())
+def get_user_service() -> UserService:
+    """
+    Dependency function to provide UserService instance.
+    Since UserService is implemented as a singleton, this will always
+    return the same instance.
+    """
+    return UserService()

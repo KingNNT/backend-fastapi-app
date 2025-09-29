@@ -2,17 +2,13 @@
 
 from abc import ABC, abstractmethod
 
+from .base import DomainException
+from .user import UserNotFound, UserAlreadyExists
+from .validation import ValidationError, BusinessRuleViolation
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 
-from app.api.response import APIResponse
-from app.exceptions import (
-    BusinessRuleViolation,
-    DomainException,
-    UserAlreadyExists,
-    UserNotFound,
-    ValidationError,
-)
+from app.utils.response import APIResponse
 
 
 class BaseExceptionHandler(ABC):

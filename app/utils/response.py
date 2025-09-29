@@ -9,13 +9,9 @@ from typing import Any
 from fastapi import status
 from fastapi.responses import JSONResponse
 
-from app.exceptions import (
-    BusinessRuleViolation,
-    DomainException,
-    UserAlreadyExists,
-    UserNotFound,
-    ValidationError,
-)
+from app.internal.exceptions.base import DomainException
+from app.internal.exceptions.user import UserNotFound, UserAlreadyExists
+from app.internal.exceptions.validation import ValidationError, BusinessRuleViolation
 
 
 class APIResponse:
@@ -27,7 +23,7 @@ class APIResponse:
         message: str = "Success",
         status_code: int = status.HTTP_200_OK,
         meta: dict[str, Any] | None = None,
-    ) -> JSONResponse:
+    ):
         """Create a standardized success response.
 
         Args:

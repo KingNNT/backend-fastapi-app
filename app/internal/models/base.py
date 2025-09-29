@@ -11,7 +11,9 @@ def utc_now() -> datetime:
 
 
 class BaseEntity(Document):
-    id: PydanticObjectId | None = Field(default=None, description="Entity ID")
+    id: PydanticObjectId = Field(
+        default_factory=PydanticObjectId, description="Entity ID"
+    )
     created_at: datetime = Field(
         default_factory=utc_now, description="Creation timestamp"
     )

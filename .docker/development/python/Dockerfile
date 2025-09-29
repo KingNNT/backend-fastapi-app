@@ -18,7 +18,7 @@ WORKDIR /app
 COPY pyproject.toml poetry.lock ./
 RUN poetry install --no-root
 
-COPY ./app /app
+COPY . .
 
 EXPOSE 8000
 

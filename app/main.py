@@ -1,13 +1,21 @@
+import logging.config
 from fastapi import FastAPI
 
-from app.configs.app import get_app_config
-from app.configs.database import database_lifespan
-from app.configs.version import get_app_version
-from app.api.exception_handlers import register_exception_handlers
+from app.configs import (
+    get_app_config,
+    database_lifespan,
+    get_app_version,
+    get_log_config,
+)
+from app.dependencies import RequestLoggingMiddleware, SecurityHeadersMiddleware
+from app.internal.exceptions import register_exception_handlers
 from app.routers import system
-from app.routers.v1 import user as user_v1
+from app.routers.v1 import v1_router
 
 config = get_app_config()
+
+# Configure global logging with dictConfig
+logging.config.dictConfig(get_log_config(config.log_level))
 
 app = FastAPI(
     title=config.name,
@@ -19,5 +27,9 @@ app = FastAPI(
 # Register exception handlers
 register_exception_handlers(app)
 
+# Add middleware
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
+
 app.include_router(system.router)
-app.include_router(user_v1.router, prefix="/v1")
+app.include_router(v1_router)

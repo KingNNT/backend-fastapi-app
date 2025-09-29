@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock, patch
 
 from beanie import PydanticObjectId
 
-from app.internal.dtos.user import UserCreate, UserUpdate, UserResponse
-from app.internal.services.user import UserService
-from app.exceptions import UserAlreadyExists, UserNotFound
+from app.internal.dtos import UserCreate, UserUpdate, UserResponse
+from app.internal.services import UserService
+from app.internal.exceptions import UserAlreadyExists, UserNotFound
 
 
 class MockUser:
@@ -188,7 +188,9 @@ class TestUserServiceBusiness:
         assert isinstance(result[0], UserResponse)
         assert result[0].id == mock_user.id
 
-        user_service.repository.get_all.assert_called_once_with(skip=0, limit=100)
+        user_service.repository.get_all.assert_called_once_with(
+            skip=0, limit=100, email=None, username=None
+        )
 
     async def test_update_user_success(self, user_service, mock_user):
         """Test successful user update."""
@@ -251,30 +253,3 @@ class TestUserServiceBusiness:
             await user_service.delete_user(user_id)
 
         assert str(user_id) in exc_info.value.message
-
-    async def test_get_user_by_email_success(self, user_service, mock_user):
-        """Test successful user retrieval by email."""
-        # Arrange
-        email = mock_user.email
-        user_service.repository.get_by_email.return_value = mock_user
-
-        # Act
-        result = await user_service.get_user_by_email(email)
-
-        # Assert
-        assert isinstance(result, UserResponse)
-        assert result.email == email
-
-        user_service.repository.get_by_email.assert_called_once_with(email)
-
-    async def test_get_user_by_email_not_found(self, user_service):
-        """Test user retrieval by email when user doesn't exist."""
-        # Arrange
-        email = "nonexistent@example.com"
-        user_service.repository.get_by_email.return_value = None
-
-        # Act & Assert
-        with pytest.raises(UserNotFound) as exc_info:
-            await user_service.get_user_by_email(email)
-
-        assert email in exc_info.value.message

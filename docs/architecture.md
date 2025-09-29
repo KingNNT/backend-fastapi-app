@@ -2,23 +2,35 @@
 
 ## Overview
 
-This FastAPI application follows clean architecture principles with clear separation of concerns, ensuring maintainability, testability, and scalability.
+This FastAPI application follows clean architecture principles with clear separation of concerns, ensuring maintainability, testability, and scalability. The architecture incorporates modern design patterns including singleton services, barrel exports, and comprehensive dependency injection.
 
 ## Clean Architecture Layers
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │                   API Layer                         │
-│              (FastAPI Routers)                      │
+│         (FastAPI Routers + Middleware)              │
+│  • V1 Router Architecture with centralized routing  │
+│  • Request/Response middleware with logging         │
+│  • Security headers and timing middleware          │
 ├─────────────────────────────────────────────────────┤
 │                Business Logic                       │
-│                 (Services)                          │
+│              (Singleton Services)                   │
+│  • Singleton pattern with dependency injection     │
+│  • Domain exception handling                       │
+│  • Business rule validation                        │
 ├─────────────────────────────────────────────────────┤
 │                Data Access                          │
-│               (Repositories)                        │
+│            (Repository Pattern)                     │
+│  • Abstract data access layer                      │
+│  • MongoDB operations encapsulation               │
+│  • Query optimization and caching                 │
 ├─────────────────────────────────────────────────────┤
 │                   Database                          │
-│              (MongoDB + Beanie)                     │
+│         (MongoDB + Beanie ODM + Motor)             │
+│  • Async operations with connection pooling       │
+│  • Document-based storage with schema validation  │
+│  • Audit trail and soft deletion support         │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -27,299 +39,384 @@ This FastAPI application follows clean architecture principles with clear separa
 ```
 app/
 ├── configs/           # Configuration modules
-│   ├── app.py        # Main app configuration
-│   ├── database.py   # MongoDB configuration
-│   ├── logging.py    # Logging configuration
-│   └── version.py    # Version management
-├── internal/
+│   ├── __init__.py   # ✨ Barrel exports for all configurations
+│   ├── app.py        # Main app configuration with Pydantic Settings
+│   ├── database.py   # MongoDB connection and Beanie initialization
+│   ├── logging.py    # Global logging configuration with datetime
+│   └── version.py    # Version management and app metadata
+│
+├── dependencies/      # 🆕 Dependency injection and middleware
+│   ├── __init__.py   # Middleware exports for dependency injection
+│   └── middleware.py # Request logging, security headers, timing
+│
+├── internal/          # Domain/business logic layer
+│   ├── __init__.py   # Internal module organization
 │   ├── dtos/         # Data Transfer Objects
-│   │   └── user.py   # User DTOs (Create, Update, Response)
-│   ├── models/       # MongoDB models (Beanie)
-│   │   ├── base.py   # Base entity with audit trail
-│   │   └── user.py   # User model
+│   │   ├── __init__.py   # ✨ All DTOs exported via barrel pattern
+│   │   ├── system.py     # System-related DTOs
+│   │   └── user.py       # User-related DTOs and validation
+│   ├── exceptions/   # Domain exception hierarchy
+│   │   ├── __init__.py       # ✨ All exceptions with barrel exports
+│   │   ├── base.py           # Base exception classes
+│   │   ├── handlers.py       # Exception to HTTP response handlers
+│   │   ├── infrastructure.py # Infrastructure-related exceptions
+│   │   ├── user.py          # User domain exceptions
+│   │   └── validation.py    # Validation and business rule exceptions
+│   ├── models/       # MongoDB models with Beanie
+│   │   ├── __init__.py   # ✨ Model exports with barrel pattern
+│   │   ├── base.py       # BaseEntity with audit trail and soft delete
+│   │   └── user.py       # User model with indexes and validation
 │   ├── repositories/ # Data access layer
-│   │   └── user.py   # User repository
-│   └── services/     # Business logic
-│       └── user.py   # User service
-├── routers/          # API route handlers
-│   ├── system.py     # System endpoints
-│   └── v1/           # Version 1 API
-│       └── user.py   # User endpoints
-├── tests/            # Test suite
-│   └── unit/         # Unit tests
-│       ├── test_user_models.py        # DTO tests
-│       └── test_user_service_simple.py # Service tests
-└── main.py           # Application entry point
+│   │   ├── __init__.py   # ✨ Repository exports
+│   │   └── user.py       # User repository with async MongoDB operations
+│   └── services/     # Business logic with singleton pattern
+│       ├── __init__.py   # ✨ Service exports including dependency functions
+│       ├── system.py     # System service for health checks
+│       └── user.py       # 🔄 Singleton UserService with DI support
+│
+├── routers/          # API endpoints with version organization
+│   ├── __init__.py   # Router organization
+│   ├── system.py     # System endpoints (health, version)
+│   └── v1/           # 🚀 Version 1 API with centralized management
+│       ├── __init__.py   # V1 router with /v1 prefix centralization
+│       └── user.py       # User CRUD endpoints
+│
+├── utils/            # Utility functions and helpers
+│   ├── __init__.py   # Utility exports
+│   └── response.py   # Standardized API response utilities
+│
+├── tests/            # Comprehensive test suite
+│   ├── __init__.py   # Test configuration
+│   ├── conftest.py   # Shared test fixtures and configuration
+│   ├── unit/         # Unit tests with comprehensive mocking
+│   └── e2e/          # End-to-end integration tests
+│
+└── main.py           # 🎯 Application entry point with global configuration
 ```
 
-## Architectural Patterns
+## Key Architectural Features
 
-### 1. Clean Architecture
+### 🔄 Singleton Pattern for Services
 
-**Dependency Rule**: Dependencies point inward. Inner layers know nothing about outer layers.
-
-- **Entities (Models)**: Core business objects
-- **Use Cases (Services)**: Business logic and rules
-- **Interface Adapters (Repositories)**: Data access abstractions
-- **Frameworks (Routers)**: External interfaces
-
-### 2. Repository Pattern
-
-Abstracts data access logic from business logic:
-
-```python
-# Repository interface
-class UserRepository:
-    async def create(self, user_data: dict) -> User
-    async def get_by_id(self, user_id: UUID) -> Optional[User]
-    async def get_all(self, skip: int, limit: int) -> List[User]
-    async def update(self, user_id: UUID, update_data: dict) -> User
-    async def delete(self, user_id: UUID) -> bool
-```
-
-### 3. Service Layer Pattern
-
-Encapsulates business logic and orchestrates operations:
+Services use the singleton pattern to ensure single instance throughout the application lifecycle:
 
 ```python
 class UserService:
-    def __init__(self, repository: UserRepository):
-        self.repository = repository
+    _instance = None
+    _initialized = False
 
-    async def create_user(self, user_data: UserCreate) -> UserResponse:
-        # Business logic here
-        pass
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(UserService, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        if not self._initialized:
+            self.repository = UserRepository()
+            UserService._initialized = True
+
+# Dependency injection support
+def get_user_service() -> UserService:
+    return UserService()
 ```
 
-### 4. DTO Pattern
+### 📦 Barrel Export Pattern
 
-Separates API contracts from internal models:
+All modules use `__init__.py` files for clean imports and better organization:
 
-- **UserCreate**: For creating users
-- **UserUpdate**: For updating users
-- **UserResponse**: For API responses
+```python
+# app/internal/services/__init__.py
+from .system import SystemService
+from .user import UserService, get_user_service
 
-## Data Flow
+__all__ = ["SystemService", "UserService", "get_user_service"]
+
+# Usage in other files
+from app.internal.services import UserService, get_user_service
+```
+
+### 🚀 Centralized API Versioning
+
+V1 router centralizes prefix management:
+
+```python
+# app/routers/v1/__init__.py
+from fastapi import APIRouter
+from app.routers.v1 import user
+
+v1_router = APIRouter(prefix="/v1")  # Centralized prefix
+v1_router.include_router(user.router)
+
+# app/main.py
+app.include_router(v1_router)  # No prefix needed here
+```
+
+### 📝 Global Logging Configuration
+
+Centralized logging with datetime formatting:
+
+```python
+# app/configs/logging.py
+def get_log_config(log_level: str = "INFO") -> dict[str, Any]:
+    return {
+        "formatters": {
+            "default": {
+                "format": "[%(asctime)s] %(name)s - %(levelname)s - %(message)s",
+                "datefmt": "%Y-%m-%d %H:%M:%S",
+            }
+        }
+        # ... comprehensive logging configuration
+    }
+
+# Usage anywhere in the application
+import logging
+logger = logging.getLogger(__name__)  # Automatically gets datetime formatting
+```
+
+### 🏗️ Repository Pattern
+
+Clean separation of data access logic:
+
+```python
+class UserRepository:
+    async def create(self, user: User) -> User:
+        return await user.save()
+
+    async def get_by_id(self, user_id: PydanticObjectId) -> User | None:
+        return await User.get(user_id)
+
+    async def email_exists(self, email: str, exclude_user_id: PydanticObjectId | None = None) -> bool:
+        # Implementation with proper query optimization
+```
+
+## Data Flow Architecture
 
 ### Request Flow
 
-1. **HTTP Request** → Router (FastAPI)
-2. **Router** → Service (Business Logic)
-3. **Service** → Repository (Data Access)
-4. **Repository** → Database (MongoDB)
+```
+1. HTTP Request → FastAPI Router
+2. Router → Middleware (logging, security headers)
+3. Router → Dependency Injection (get_user_service)
+4. Router → Service Method (business logic)
+5. Service → Repository (data access)
+6. Repository → MongoDB (via Beanie ODM)
+7. Response ← Standardized APIResponse format
+```
 
-### Response Flow
+### Example Request Flow
 
-1. **Database** → Repository (Raw Data)
-2. **Repository** → Service (Domain Objects)
-3. **Service** → Router (DTOs)
-4. **Router** → HTTP Response (JSON)
+```python
+# 1. Router receives request
+@router.post("/", status_code=status.HTTP_201_CREATED)
+async def create_user(
+    user_data: UserCreate,
+    user_service: UserService = Depends(get_user_service)  # 2. DI
+) -> JSONResponse:
+    user = await user_service.create_user(user_data)  # 3. Service
+    return APIResponse.success_response(data=user)    # 4. Response
 
-## Key Architectural Decisions
+# 2. Service handles business logic
+async def create_user(self, user_data: UserCreate) -> UserResponse:
+    # Business validation
+    if await self.repository.email_exists(user_data.email):
+        raise UserAlreadyExists("email", user_data.email)
 
-### 1. Base Entity Pattern
+    # 3. Repository handles data access
+    created_user = await self.repository.create(user)
+    return UserResponse(**created_user.model_dump())
+```
+
+## Design Patterns Used
+
+### 1. Singleton Pattern
+- **Services**: Ensure single instance per application lifecycle
+- **Configuration**: Cached configuration objects with `@lru_cache()`
+
+### 2. Repository Pattern
+- **Data Access**: Abstract database operations from business logic
+- **Testing**: Easy mocking of data layer
+
+### 3. Dependency Injection
+- **FastAPI Native**: Using `Depends()` for clean dependency management
+- **Service Layer**: Singleton services with injection support
+
+### 4. Factory Pattern
+- **Exception Handlers**: Creating appropriate HTTP responses from domain exceptions
+- **DTOs**: Converting between domain models and API contracts
+
+### 5. Strategy Pattern
+- **Logging**: Different formatters for different log types
+- **Configuration**: Environment-specific configurations
+
+## Database Design
+
+### BaseEntity Pattern
 
 All models inherit from `BaseEntity` providing:
 
 ```python
 class BaseEntity(Document):
-    id: UUID = Field(default_factory=uuid4)
-    created_at: datetime = Field(default_factory=utc_now)
-    created_by: Optional[UUID] = Field(None)
-    updated_at: datetime = Field(default_factory=utc_now)
-    updated_by: Optional[UUID] = Field(None)
-    deleted_at: Optional[datetime] = Field(None)
-    deleted_by: Optional[UUID] = Field(None)
+    id: PydanticObjectId = Field(default_factory=PydanticObjectId)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_by: UUID | None = None
+    updated_by: UUID | None = None
+    deleted_at: datetime | None = None
+    deleted_by: UUID | None = None
+
+    def soft_delete(self, deleted_by: UUID | None = None):
+        self.deleted_at = datetime.now(timezone.utc)
+        self.deleted_by = deleted_by
 ```
 
-**Benefits**:
-- Consistent audit trail across all entities
-- Soft deletion support
-- UUID-based IDs for distributed systems
-- Timezone-aware timestamps
+### Audit Trail Features
 
-### 2. Async/Await Pattern
+- **Creation Tracking**: Who and when created
+- **Modification Tracking**: Who and when last modified
+- **Soft Deletion**: Preserves data for audit purposes
+- **Timezone Awareness**: UTC timestamps for global applications
 
-All database operations use async/await:
+## Error Handling Architecture
+
+### Domain Exception Hierarchy
 
 ```python
-async def create_user(self, user_data: UserCreate) -> UserResponse:
-    # Async validation
-    if await self.repository.email_exists(user_data.email):
-        raise HTTPException(...)
+# Base exceptions
+class DomainException(Exception): pass
+class ApplicationException(DomainException): pass
+class InfrastructureException(DomainException): pass
 
-    # Async creation
-    user = await self.repository.create(user_data.dict())
-    return UserResponse.from_orm(user)
+# Specific domain exceptions
+class UserException(DomainException): pass
+class UserNotFound(UserException): pass
+class UserAlreadyExists(UserException): pass
 ```
 
-### 3. Dependency Injection
+### Exception Flow
 
-FastAPI's built-in DI system:
+1. **Services**: Raise domain exceptions (never HTTP exceptions)
+2. **Handlers**: Convert domain exceptions to HTTP responses
+3. **API Layer**: Returns standardized error format
 
-```python
-@router.post("/", response_model=UserResponse)
-async def create_user(
-    user_data: UserCreate,
-    user_service: UserService = Depends(get_user_service)
-):
-    return await user_service.create_user(user_data)
-```
+## Environment Configuration
 
-### 4. Error Handling Strategy
-
-Consistent error responses using FastAPI's HTTPException:
+### Pydantic Settings Pattern
 
 ```python
-# Service layer
-if not user:
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="User not found"
+class AppConfig(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore"
     )
+
+    # Application settings with defaults
+    name: str = Field(default="backend-fastapi-app")
+    environment: Literal["development", "staging", "production"] = "development"
+
+    # Database settings
+    mongodb_url: str = Field(description="MongoDB connection string")
 ```
-
-### 5. Configuration Management
-
-Environment-based configuration with Pydantic Settings:
-
-```python
-class AppSettings(BaseSettings):
-    app_name: str = "backend-fastapi-app"
-    debug: bool = False
-    environment: str = "development"
-
-    class Config:
-        env_file = ".env"
-```
-
-## MongoDB Integration
-
-### Beanie ODM
-
-- **Document-based**: Models inherit from `Document`
-- **Async operations**: Full async/await support
-- **Indexing**: Automatic index creation
-- **Relationships**: Support for document references
-
-### Connection Management
-
-```python
-# Database lifespan management
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
-    await init_database()
-    yield
-    # Shutdown
-    await close_database()
-```
-
-## API Versioning Strategy
-
-### Version-based Routing
-
-```python
-# v1 API
-app.include_router(
-    user_router,
-    prefix="/v1/users",
-    tags=["users-v1"]
-)
-
-# Future v2 API
-app.include_router(
-    user_router_v2,
-    prefix="/v2/users",
-    tags=["users-v2"]
-)
-```
-
-### Versioning Benefits
-
-- **Backward Compatibility**: Old clients continue working
-- **Gradual Migration**: Clients can upgrade at their own pace
-- **Feature Evolution**: New features without breaking changes
 
 ## Testing Architecture
 
-### Unit Testing Strategy
-
-- **Service Layer**: Business logic testing with mocked repositories
-- **DTO Layer**: Input validation and serialization testing
-- **Isolated Testing**: No database dependencies in unit tests
-
-### Test Structure
+### Unit Tests with Mocking
 
 ```python
-# Service testing with mocks
-@pytest.fixture
-def user_service():
-    service = UserService()
-    service.repository = AsyncMock()
-    return service
+class TestUserServiceBusiness:
+    @pytest.fixture
+    def user_service(self):
+        service = UserService()
+        service.repository = AsyncMock()  # Mock repository
+        return service
 
-# DTO testing
-def test_user_create_valid():
-    user_data = {"email": "test@example.com", ...}
-    user_create = UserCreate(**user_data)
-    assert user_create.email == "test@example.com"
+    async def test_create_user_success(self, user_service, sample_user_create):
+        # Arrange
+        user_service.repository.email_exists.return_value = False
+
+        # Act
+        result = await user_service.create_user(sample_user_create)
+
+        # Assert
+        assert isinstance(result, UserResponse)
 ```
 
-## Security Considerations
+### Integration Tests
 
-### Data Protection
-
-- **Soft Deletion**: Preserves data for audit purposes
-- **Audit Trail**: Tracks all data modifications
-- **Input Validation**: Pydantic models prevent invalid data
-
-### Access Control
-
-- **UUID-based IDs**: Prevents enumeration attacks
-- **Field Validation**: Strict input validation
-- **Environment Variables**: Sensitive configuration externalized
+- **E2E Tests**: Full application stack testing
+- **Database Tests**: Real MongoDB integration
+- **API Tests**: HTTP endpoint testing
 
 ## Performance Considerations
 
-### Database Optimization
+### Async Operations
 
-- **Indexes**: Automatic index creation for frequently queried fields
-- **Connection Pooling**: MongoDB connection pooling
-- **Async Operations**: Non-blocking database operations
+- **Full Async Stack**: FastAPI + Motor + Beanie
+- **Connection Pooling**: MongoDB connection management
+- **Non-blocking I/O**: Efficient resource utilization
 
 ### Caching Strategy
 
-- **Configuration Caching**: `@lru_cache` for configuration objects
-- **Connection Reuse**: Persistent database connections
+- **Configuration Caching**: `@lru_cache()` for settings
+- **Service Singletons**: Reduce object creation overhead
+- **Query Optimization**: Repository pattern enables query caching
 
-## Scalability Patterns
+### Monitoring and Observability
 
-### Horizontal Scaling
+- **Request Logging**: Detailed request/response tracking
+- **Performance Metrics**: Response time middleware
+- **Health Checks**: Application and database monitoring
 
-- **Stateless Services**: Services don't maintain state
-- **Database Sharding**: MongoDB sharding support
-- **Containerization**: Docker for consistent deployment
+## Security Architecture
 
-### Vertical Scaling
+### Authentication & Authorization (Ready for Implementation)
 
-- **Async Processing**: High concurrency with async/await
-- **Resource Optimization**: Efficient memory usage
-- **Connection Pooling**: Optimal database connections
+- **JWT Token Support**: Ready for authentication implementation
+- **Role-based Access**: Prepared user model structure
+- **API Key Support**: Configurable authentication strategies
 
-## Future Considerations
+### Data Protection
 
-### Potential Enhancements
+- **Input Validation**: Pydantic models prevent injection
+- **SQL Injection Prevention**: NoSQL with ODM protection
+- **UUID-based IDs**: Prevent enumeration attacks
 
-1. **Event Sourcing**: For complex audit requirements
-2. **CQRS**: Separate read/write models for optimization
-3. **Domain Events**: Decoupled business logic
-4. **Message Queues**: Async processing for heavy operations
-5. **Microservices**: Service decomposition as system grows
+### Security Headers
 
-### Migration Strategy
+Automatic security headers via middleware:
 
-- **Database Migrations**: Version-controlled schema changes
-- **API Versioning**: Backward compatibility maintenance
-- **Feature Flags**: Safe feature rollouts
-- **Blue-Green Deployment**: Zero-downtime deployments
+```python
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        return response
+```
+
+## Deployment Architecture
+
+### Docker-First Approach
+
+- **Development**: Docker Compose with hot reload
+- **Production**: Multi-stage Docker builds
+- **Orchestration**: Kubernetes-ready with health checks
+
+### Environment Management
+
+- **Configuration**: Environment-specific settings
+- **Secrets**: External secret management support
+- **Scaling**: Horizontal scaling with load balancers
+
+## Future Architecture Considerations
+
+### Planned Enhancements
+
+- **Event Sourcing**: For complex domain events
+- **CQRS**: Separate read/write models for complex queries
+- **Microservices**: Service decomposition guidelines
+- **API Gateway**: External API management
+- **Message Queues**: Async task processing
+
+This architecture provides a solid foundation for building scalable, maintainable FastAPI applications with modern Python practices and clean architecture principles.

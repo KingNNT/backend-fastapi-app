@@ -75,8 +75,13 @@ lint-fix: ## Run linting with auto-fix (in Docker)
 	@echo "$(GREEN)Running ruff linter with auto-fix...$(RESET)"
 	$(DOCKER_COMPOSE_DEV) exec python poetry run ruff check --fix
 
+.PHONY: typecheck
+typecheck: ## Run type checking with pyright (in Docker)
+	@echo "$(YELLOW)Running type checking with pyright...$(RESET)"
+	$(DOCKER_COMPOSE_DEV) exec python poetry run pyright
+
 .PHONY: check
-check: format-check lint ## Run all code quality checks (in Docker)
+check: format-check lint typecheck ## Run all code quality checks (in Docker)
 	@echo "$(GREEN)All code quality checks completed!$(RESET)"
 
 .PHONY: fix
