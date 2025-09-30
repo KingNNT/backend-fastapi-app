@@ -2,98 +2,160 @@
 
 ## Overview
 
-This application uses MongoDB as the primary database with Beanie ODM (Object Document Mapper) for async operations. The database follows a document-based approach with structured schemas and audit trail support.
+This application uses a **dual database architecture** combining PostgreSQL (relational) and MongoDB (document) databases. This hybrid approach allows optimal data storage based on data structure and access patterns.
 
 ## Technology Stack
 
+### PostgreSQL (SQL)
+- **Database**: PostgreSQL 16+
+- **ORM**: SQLModel (type-safe SQL operations)
+- **Migrations**: Alembic (schema versioning)
+- **Driver**: AsyncPG (async Python driver)
+- **Connection**: Async connection pooling via SQLAlchemy
+
+### MongoDB (NoSQL)
 - **Database**: MongoDB 7.0+
 - **Driver**: Motor (async Python driver)
 - **ODM**: Beanie (async ODM built on Pydantic)
 - **Connection**: Async connection pooling
+
+## When to Use Which Database
+
+### Use PostgreSQL for:
+- Structured data with relationships (foreign keys)
+- Data requiring ACID transactions
+- Complex queries with JOINs
+- Data that changes schema infrequently
+- Reporting and analytics
+
+### Use MongoDB for:
+- Flexible/dynamic schemas
+- Nested/hierarchical data structures
+- High-volume read operations
+- Rapidly evolving data models
+- Document-based data
 
 ## Database Configuration
 
 ### Connection Settings
 
 ```python
-# app/configs/database.py
-class DatabaseSettings(BaseSettings):
+# app/configs/app.py
+class AppConfig(BaseSettings):
+    # PostgreSQL
+    postgre_database_url: str = "postgresql+asyncpg://admin:password@localhost:5432/database_develop"
+
+    # MongoDB
     mongodb_url: str = "mongodb://localhost:27017"
-    mongodb_db_name: str = "app_db"
-    mongodb_test_db_name: str = "test_db"
+    mongodb_database: str = "app_db"
+    mongodb_test_database: str = "test_db"
 
     class Config:
         env_file = ".env"
-        env_prefix = "MONGODB_"
 ```
 
 ### Environment Variables
 
 ```env
+# PostgreSQL
+POSTGRE_DATABASE_URL=postgresql+asyncpg://admin:password@postgresql:5432/database_develop
+
+# MongoDB
 MONGODB_URL=mongodb://mongodb:27017
-MONGODB_DB_NAME=app_db
-MONGODB_TEST_DB_NAME=test_db
+MONGODB_DATABASE=app_db
+MONGODB_TEST_DATABASE=test_db
 ```
 
-### Connection Management
+### Unified Connection Management
+
+Both databases are managed through a unified lifespan context manager:
 
 ```python
-# Database lifespan management
+# app/dependencies/lifespan.py
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    await init_database()
-    yield
-    # Shutdown
-    await close_database()
+    # Startup: Initialize both databases
+    await nosql_db_manager.connect()  # MongoDB
+    await sql_db_manager.connect()     # PostgreSQL
+
+    yield  # Application runs
+
+    # Shutdown: Close both connections
+    await nosql_db_manager.close()
+    await sql_db_manager.close()
 ```
 
 ## Schema Design
 
-### Base Entity
+### PostgreSQL Models (SQLModel)
 
-All documents inherit from `BaseEntity` providing common audit fields:
+All SQL models inherit from `BaseModel` providing common audit fields:
 
 ```python
-class BaseEntity(Document):
-    id: UUID = Field(default_factory=uuid4)
-    created_at: datetime = Field(default_factory=utc_now)
-    created_by: Optional[UUID] = Field(None)
-    updated_at: datetime = Field(default_factory=utc_now)
-    updated_by: Optional[UUID] = Field(None)
-    deleted_at: Optional[datetime] = Field(None)
-    deleted_by: Optional[UUID] = Field(None)
+# app/internal/models/sql/base.py
+class BaseModel(SQLModel, table=False):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    created_at: datetime = Field(default_factory=datetime.now)
+    created_by: Optional[str] = Field(default=None)
+    updated_at: Optional[datetime] = Field(default=None)
+    updated_by: Optional[str] = Field(default=None)
+    deleted_at: Optional[datetime] = Field(default=None)
+    deleted_by: Optional[str] = Field(default=None)
 
-    @property
+    def soft_delete(self, deleted_by: Optional[str] = None):
+        self.deleted_at = datetime.now()
+        self.deleted_by = deleted_by
+
     def is_deleted(self) -> bool:
         return self.deleted_at is not None
-
-    def soft_delete(self, deleted_by: Optional[UUID] = None):
-        now = utc_now()
-        self.deleted_at = now
-        self.deleted_by = deleted_by
-        self.updated_at = now
-        self.updated_by = deleted_by
 ```
 
-### User Collection
+**User Table Example:**
+```python
+# app/internal/models/sql/user.py
+class User(BaseModel, table=True):
+    __tablename__ = "users"
+
+    first_name: str = Field(description="First name")
+    last_name: str = Field(description="Last name")
+```
+
+### MongoDB Models (Beanie)
+
+All NoSQL models inherit from `BaseEntity` (Beanie Document):
 
 ```python
+# app/internal/models/no_sql/base.py
+class BaseEntity(Document):
+    id: UUID = Field(default_factory=uuid4)
+    created_at: datetime = Field(default_factory=datetime.now)
+    created_by: Optional[str] = Field(None)
+    updated_at: Optional[datetime] = Field(None)
+    updated_by: Optional[str] = Field(None)
+    deleted_at: Optional[datetime] = Field(None)
+    deleted_by: Optional[str] = Field(None)
+
+    def soft_delete(self, deleted_by: Optional[str] = None):
+        self.deleted_at = datetime.now()
+        self.deleted_by = deleted_by
+
+    def is_deleted(self) -> bool:
+        return self.deleted_at is not None
+```
+
+**User Collection Example:**
+```python
+# app/internal/models/no_sql/user.py
 class User(BaseEntity):
     email: Indexed(str, unique=True) = Field(...)
-    username: Indexed(str, unique=True) = Field(..., min_length=3, max_length=50)
-    full_name: Optional[str] = Field(None, max_length=100)
-    password_hash: str = Field(...)
-    is_active: bool = Field(default=True)
+    username: Indexed(str, unique=True) = Field(...)
+    full_name: Optional[str] = Field(None)
 
     class Settings:
         name = "users"
         indexes = [
             IndexModel([("email", 1)], unique=True),
             IndexModel([("username", 1)], unique=True),
-            IndexModel([("created_at", -1)]),
-            IndexModel([("is_active", 1)]),
-            IndexModel([("deleted_at", 1)]),
         ]
 ```
 
@@ -128,11 +190,66 @@ username: Indexed(str, unique=True) = Field(
 password: str = Field(..., min_length=8)
 ```
 
+## PostgreSQL Migrations (Alembic)
+
+### Migration Workflow
+
+```bash
+# Generate new migration after model changes
+make migrate-generate MESSAGE="add user table"
+
+# Apply migrations
+make migrate-up
+
+# Rollback one migration
+make migrate-down
+
+# View migration history
+make migrate-history
+
+# Check current version
+make migrate-current
+```
+
+### Migration File Structure
+
+```
+app/databases/sql/migrations/
+├── env.py                    # Alembic environment config
+├── versions/
+│   └── 20250930_xxxx_description.py  # Migration files
+└── alembic.ini               # Alembic configuration
+```
+
+### Database Seeding
+
+```bash
+# Seed PostgreSQL with sample data
+make seed
+
+# Clear seeded data
+make seed-clear
+
+# Reseed (clear + seed)
+make reseed
+```
+
 ## Indexing Strategy
 
-### Automatic Indexes
+### PostgreSQL Indexes
 
-Beanie automatically creates indexes based on field definitions:
+Indexes are created via Alembic migrations:
+
+```python
+# In migration file
+def upgrade():
+    op.create_index('ix_users_email', 'users', ['email'], unique=True)
+    op.create_index('ix_users_created_at', 'users', ['created_at'])
+```
+
+### MongoDB Indexes
+
+Beanie automatically creates indexes based on model definitions:
 
 ```python
 # Single field indexes
@@ -143,9 +260,7 @@ username: Indexed(str, unique=True)  # Unique index on username
 class Settings:
     indexes = [
         IndexModel([("email", 1)], unique=True),
-        IndexModel([("username", 1)], unique=True),
         IndexModel([("created_at", -1)]),  # Descending for latest first
-        IndexModel([("is_active", 1)]),
         IndexModel([("deleted_at", 1)]),   # For soft deletion queries
     ]
 ```
@@ -153,7 +268,7 @@ class Settings:
 ### Index Performance
 
 - **Query optimization**: Indexes speed up common queries
-- **Unique constraints**: Prevent duplicate emails/usernames
+- **Unique constraints**: Prevent duplicate data
 - **Sorting**: Indexes support efficient sorting
 - **Filtering**: Indexes optimize WHERE clauses
 

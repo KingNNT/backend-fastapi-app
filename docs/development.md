@@ -32,7 +32,7 @@ make dev
 
 This single command will:
 - Build all Docker images
-- Start all services (Python app + MongoDB)
+- Start all services (Python app + PostgreSQL + MongoDB)
 - Show application logs
 
 ### 3. Verify Setup
@@ -56,20 +56,23 @@ make health
 # Build Docker images
 make build
 
-# Start all services in background
-make up
+# Start/Stop services
+make start            # Start all services (alias for up)
+make stop             # Stop all services (alias for down)
+make up               # Start all services in background
+make down             # Stop all services
 
 # Start with logs (foreground)
 make up-logs
-
-# Stop all services
-make down
 
 # Restart services
 make restart
 
 # Rebuild and restart (after code changes)
 make rebuild
+
+# Check service status
+make status
 ```
 
 ### Development Workflow
@@ -132,17 +135,38 @@ make ci               # Build, test, and check quality
 ### Database Management
 
 ```bash
-# Start only MongoDB
-make db-up
+# General Database Commands
+make db-up            # Start both PostgreSQL and MongoDB
+make db-down          # Stop both databases
+make db-reset         # Reset all database data (WARNING: deletes all data)
+make ping-db          # Ping both databases
 
-# Stop MongoDB
-make db-down
+# MongoDB Commands
+make mongo-up         # Start only MongoDB
+make mongo-down       # Stop MongoDB
+make mongo-reset      # Reset MongoDB data
+make shell-mongo      # Access MongoDB shell
+make ping-mongo       # Ping MongoDB
 
-# Reset MongoDB data (WARNING: deletes all data)
-make db-reset
+# PostgreSQL Commands
+make postgres-up      # Start only PostgreSQL
+make postgres-down    # Stop PostgreSQL
+make postgres-reset   # Reset PostgreSQL data
+make shell-postgres   # Access PostgreSQL shell
+make ping-postgres    # Ping PostgreSQL
 
-# Access MongoDB shell
-make shell-mongo
+# PostgreSQL Migrations (Alembic)
+make migrate-generate MESSAGE="description"  # Generate new migration
+make migrate-up       # Apply all pending migrations
+make migrate-down     # Rollback one migration
+make migrate-history  # Show migration history
+make migrate-current  # Show current migration version
+make migrate-reset    # Reset all migrations (WARNING: destroys data)
+
+# PostgreSQL Seeding
+make seed             # Seed database with sample data
+make seed-clear       # Clear all seeded data
+make reseed           # Clear and reseed with fresh data
 ```
 
 ### Container Access
@@ -154,8 +178,9 @@ make shell
 # Access Python REPL
 make shell-python
 
-# Access MongoDB shell
-make shell-mongo
+# Access database shells
+make shell-mongo      # MongoDB shell
+make shell-postgres   # PostgreSQL shell
 ```
 
 ### Logging and Monitoring
@@ -164,8 +189,9 @@ make shell-mongo
 # Show application logs
 make logs
 
-# Show MongoDB logs
-make logs-db
+# Show database logs
+make logs-db          # MongoDB logs
+make logs-postgres    # PostgreSQL logs
 
 # Show all services logs
 make logs-all

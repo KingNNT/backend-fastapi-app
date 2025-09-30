@@ -25,7 +25,9 @@ make dev
 ## 🛠️ Technology Stack
 
 - **Framework**: FastAPI with async support
-- **Database**: MongoDB with Beanie ODM and Motor driver
+- **Databases**:
+  - **PostgreSQL** with SQLModel and Alembic for migrations (SQL)
+  - **MongoDB** with Beanie ODM and Motor driver (NoSQL)
 - **Language**: Python 3.12+
 - **Containerization**: Docker & Docker Compose
 - **Testing**: pytest with async support and comprehensive mocking
@@ -44,7 +46,7 @@ This application follows clean architecture with clear separation of concerns an
 ├─────────────────────────────────────┤
 │     Data Access (Repositories)      │  ← Repository pattern for data access
 ├─────────────────────────────────────┤
-│        Database (MongoDB)           │  ← Beanie ODM with Motor async driver
+│     Databases (Dual Support)        │  ← PostgreSQL (SQLModel) + MongoDB (Beanie)
 └─────────────────────────────────────┘
 ```
 
@@ -99,8 +101,12 @@ make fix             # Format and lint code
 make ci              # Run full CI pipeline
 
 # Database management
-make db-reset        # Reset database
+make db-up           # Start both databases
+make db-reset        # Reset all database data
 make shell-mongo     # Access MongoDB shell
+make shell-postgres  # Access PostgreSQL shell
+make migrate-up      # Apply PostgreSQL migrations
+make seed            # Seed PostgreSQL with sample data
 
 # Utilities
 make shell           # Access container shell
@@ -141,10 +147,14 @@ For comprehensive guides, see the `docs/` directory:
 
 ### Core Features
 - ✅ **Clean Architecture** with dependency injection and singleton services
-- ✅ **MongoDB Integration** with async ODM (Beanie) and Motor driver
+- ✅ **Dual Database Support**:
+  - PostgreSQL (SQLModel + Alembic migrations) for relational data
+  - MongoDB (Beanie ODM + Motor) for document storage
+- ✅ **Unified Lifespan Management** for both databases
 - ✅ **API Versioning** with centralized `/v1/` prefix management
 - ✅ **Comprehensive Testing** (unit tests with mocks and E2E tests)
 - ✅ **Docker-First Development** (no local Python needed)
+- ✅ **Modular Makefile** organized by functionality
 
 ### Advanced Features
 - ✅ **Audit Trail** with soft deletion and automatic tracking

@@ -21,6 +21,8 @@ make logs     # View logs
 ```bash
 # Development
 make dev           # Full development setup (build, up, logs)
+make start         # Start all services (alias for up)
+make stop          # Stop all services (alias for down)
 make up            # Start services in background
 make down          # Stop all services
 make restart       # Restart services
@@ -30,24 +32,52 @@ make rebuild       # Rebuild and restart
 make format        # Format code with ruff
 make lint          # Run linting
 make typecheck     # Run type checking with pyright
-make fix          # Format and fix all issues
-make check        # Run all quality checks (format, lint, typecheck)
+make fix           # Format and fix all issues
+make check         # Run all quality checks (format, lint, typecheck)
 
 # Testing (runs in Docker)
-make test         # Run unit tests
-make test-cov     # Run tests with coverage
-make test-all     # Run all tests
-make ci           # Full CI pipeline
+make test          # Run unit tests
+make test-cov      # Run tests with coverage
+make test-all      # Run all tests
+make ci            # Full CI pipeline
 
-# Database Management
-make db-up        # Start only MongoDB
-make db-reset     # Reset MongoDB data (WARNING: deletes all data)
-make shell-mongo  # Access MongoDB shell
+# Database Management (Both PostgreSQL and MongoDB)
+make db-up         # Start both databases
+make db-down       # Stop both databases
+make db-reset      # Reset all database data (WARNING: deletes all data)
+
+# MongoDB Commands
+make mongo-up      # Start only MongoDB
+make mongo-down    # Stop MongoDB
+make mongo-reset   # Reset MongoDB data
+make shell-mongo   # Access MongoDB shell
+make ping-mongo    # Ping MongoDB
+
+# PostgreSQL Commands
+make postgres-up   # Start only PostgreSQL
+make postgres-down # Stop PostgreSQL
+make postgres-reset # Reset PostgreSQL data
+make shell-postgres # Access PostgreSQL shell
+make ping-postgres  # Ping PostgreSQL
+
+# PostgreSQL Migrations (Alembic)
+make migrate-generate MESSAGE="description"  # Generate new migration
+make migrate-up    # Apply all pending migrations
+make migrate-down  # Rollback one migration
+make migrate-history # Show migration history
+make migrate-current # Show current migration version
+make migrate-reset # Reset all migrations (WARNING: destroys data)
+
+# PostgreSQL Seeding
+make seed          # Seed database with sample data
+make seed-clear    # Clear all seeded data
+make reseed        # Clear and reseed with fresh data
 
 # Utilities
-make shell        # Access Python container shell
-make health       # Check application health
-make version      # Show application version
+make shell         # Access Python container shell
+make health        # Check application health
+make version       # Show application version
+make help          # Show all available commands (organized by category)
 ```
 
 ### Never Run Locally
@@ -59,8 +89,9 @@ make version      # Show application version
 
 ### Docker Services
 - `python`: FastAPI application container
-- `mongodb`: MongoDB database container
-- Both services defined in `docker-compose.development.yaml`
+- `mongodb`: MongoDB NoSQL database container
+- `postgresql`: PostgreSQL SQL database container
+- All services defined in `docker-compose.development.yaml`
 
 ## Architecture Overview
 
@@ -76,7 +107,9 @@ This FastAPI application follows clean architecture principles with clear separa
 
 ### Technology Stack
 - **Framework**: FastAPI with async support and dependency injection
-- **Database**: MongoDB with Motor (async driver) and Beanie (ODM)
+- **Databases**:
+  - **PostgreSQL** with SQLModel (SQL ORM) and Alembic (migrations)
+  - **MongoDB** with Motor (async driver) and Beanie (ODM)
 - **Containerization**: Docker with docker-compose for development and production
 - **Code Quality**: Ruff for formatting and linting, Pyright for type checking
 - **Testing**: pytest with pytest-asyncio and comprehensive mocking
@@ -109,23 +142,26 @@ This FastAPI application follows clean architecture principles with clear separa
 - Use `logging.getLogger(__name__)` anywhere for consistent formatting
 
 **🔌 Dependencies Folder Structure**: Organized middleware and dependency injection:
+- `app/dependencies/lifespan.py` manages both database connections (PostgreSQL + MongoDB)
 - `app/dependencies/middleware.py` contains all middleware classes
-- `app/dependencies/__init__.py` exports middleware for clean imports
+- `app/dependencies/__init__.py` exports middleware and lifespan for clean imports
 - Request logging middleware with timing and emoji indicators
 - Security headers middleware for production safety
+- Unified lifespan context manager for dual database support
 
-**Base Entity Pattern**: All models inherit from `BaseEntity` (Beanie Document) providing:
-- UUID-based IDs with automatic generation
-- Audit trail fields (created_by, updated_by, deleted_by)
-- Soft deletion with `deleted_at` field and `soft_delete()` method
-- Timezone-aware datetime using `datetime.now(timezone.utc)`
-- MongoDB indexes for performance
+**Base Entity Pattern**: Models use base classes with common functionality:
+- **MongoDB**: `BaseEntity` (Beanie Document) with UUID IDs, audit trail, soft deletion
+- **PostgreSQL**: `BaseModel` (SQLModel) with UUID IDs, audit trail, soft deletion
+- Timezone-aware datetime using `datetime.now(timezone.utc)` (not deprecated `utcnow()`)
+- Consistent field naming across both database types
+- Database-specific indexes for performance
 
-**MongoDB Integration**:
-- Beanie ODM for async MongoDB operations
-- Motor driver for high-performance async database access
-- Database lifespan management in FastAPI application
-- Connection pooling and automatic reconnection
+**Dual Database Integration**:
+- **PostgreSQL**: SQLModel ORM with Alembic migrations for schema management
+- **MongoDB**: Beanie ODM with Motor async driver for document operations
+- Unified lifespan management in `app/dependencies/lifespan.py`
+- Both databases initialized and closed together in application lifecycle
+- Connection pooling for both databases
 
 **Repository Pattern**:
 - Separate data access layer for MongoDB operations
@@ -135,15 +171,23 @@ This FastAPI application follows clean architecture principles with clear separa
 
 **Configuration Management**:
 - Pydantic Settings with environment variable support
-- MongoDB connection string configuration
+- Database connection configuration for both PostgreSQL and MongoDB
 - Singleton pattern using `@lru_cache()` decorators
 - Environment-aware configuration (development/staging/production)
 - Global logging configuration with datetime formatting
 
 **Docker-First Development**:
 - All development commands run in Docker containers
-- MongoDB service integrated with docker-compose
-- Makefile provides consistent development workflow
+- PostgreSQL and MongoDB services integrated with docker-compose
+- **Modular Makefile** organized into separate files by functionality:
+  - `makefiles/docker.mk` - Docker & environment management
+  - `makefiles/quality.mk` - Code quality (format, lint, typecheck)
+  - `makefiles/test.mk` - Testing commands
+  - `makefiles/database.mk` - Database operations (PostgreSQL & MongoDB)
+  - `makefiles/utils.mk` - Utilities (install, shell, logs, health)
+  - `makefiles/workflow.mk` - Development workflows (dev, ci, verify)
+- Main `Makefile` includes all modules with shared variables
+- Organized `make help` output grouped by category
 - No local Python environment required
 
 ### Data Flow Pattern
@@ -162,15 +206,32 @@ The application uses environment-based configuration with `.env` file support:
 - Configurable via environment variables or `.env` file
 
 ### Database Strategy
-MongoDB with Beanie ODM:
-- Async operations with Motor driver
-- Document-based storage with flexible schema
-- Repository pattern abstracts data access
-- Models inherit from Beanie Document via BaseEntity
+**Dual Database Architecture** for flexibility and optimal data storage:
+
+**PostgreSQL (Relational)**:
+- SQLModel ORM for type-safe SQL operations
+- Alembic for database migrations and schema versioning
+- Structured data with foreign keys and constraints
+- ACID transactions for data consistency
+- Automatic table creation via migrations
+- Database seeding system for sample/test data
+- Connection pooling via async SQLAlchemy engine
+
+**MongoDB (Document)**:
+- Beanie ODM with Motor async driver
+- Flexible schema for dynamic data
+- Document-based storage for complex nested structures
+- High performance for read-heavy workloads
+- No migrations needed (schema-less)
+- Automatic index creation
+
+**Common Features**:
+- Repository pattern abstracts data access for both databases
 - UUID-based IDs support distributed systems
 - Soft deletion preserves audit trail
 - Indexes for performance optimization
-- Connection management with lifespan events
+- Unified lifespan management initializes both databases
+- Async/await support throughout
 
 ### Testing Structure
 - Unit tests: `app/tests/unit/` (business logic with mocked dependencies)
@@ -330,7 +391,13 @@ All API responses use consistent structure via `APIResponse` utility:
 - `DEBUG`: Debug mode flag
 - `LOG_LEVEL`: Logging level
 
-### MongoDB Settings
+### Database Settings
+
+**PostgreSQL**:
+- `POSTGRE_DATABASE_URL`: PostgreSQL connection string (postgresql+asyncpg://...)
+- Example: `postgresql+asyncpg://admin:password@postgresql:5432/database_develop`
+
+**MongoDB**:
 - `MONGODB_URL`: MongoDB connection string
 - `MONGODB_DB_NAME`: Database name
 - `MONGODB_TEST_DB_NAME`: Test database name
@@ -346,11 +413,21 @@ app/
 ├── configs/          # Configuration modules
 │   ├── __init__.py  # ✨ Barrel exports for all configurations
 │   ├── app.py       # Main app configuration
-│   ├── database.py  # MongoDB configuration
 │   ├── logging.py   # Global logging configuration with datetime
 │   └── version.py   # Version management
+├── databases/        # 🆕 Database layer (PostgreSQL & MongoDB)
+│   ├── no_sql/           # MongoDB database manager
+│   │   └── manager.py    # MongoDB connection & Beanie initialization
+│   └── sql/              # PostgreSQL database manager & migrations
+│       ├── manager.py    # PostgreSQL connection & SQLModel setup
+│       ├── migrations/   # Alembic migrations
+│       │   ├── env.py    # Alembic environment configuration
+│       │   └── versions/ # Migration version files
+│       └── seeds/        # Database seeding scripts
+│           └── seed_runner.py  # Seed data management
 ├── dependencies/     # 🆕 Dependency injection and middleware
-│   ├── __init__.py      # Middleware exports for dependency injection
+│   ├── __init__.py      # Exports for dependency injection
+│   ├── lifespan.py      # Unified lifespan for both databases
 │   └── middleware.py    # Request logging, security headers, timing
 ├── internal/         # Domain/business logic layer
 │   ├── __init__.py  # Internal module organization
@@ -365,10 +442,16 @@ app/
 │   │   ├── infrastructure.py    # Infrastructure exceptions
 │   │   ├── user.py              # User domain exceptions
 │   │   └── validation.py        # Validation & business rule exceptions
-│   ├── models/          # MongoDB models (Beanie)
-│   │   ├── __init__.py      # ✨ Model exports with barrel pattern
-│   │   ├── base.py          # BaseEntity with audit trail and soft delete
-│   │   └── user.py          # User model with indexes and validation
+│   ├── models/          # Database models
+│   │   ├── no_sql/          # MongoDB models (Beanie)
+│   │   │   ├── __init__.py  # Model exports
+│   │   │   ├── base.py      # BaseEntity with audit trail
+│   │   │   └── user.py      # MongoDB User model
+│   │   ├── sql/             # PostgreSQL models (SQLModel)
+│   │   │   ├── __init__.py  # Model exports
+│   │   │   ├── base.py      # BaseModel with audit trail
+│   │   │   └── user.py      # PostgreSQL User model
+│   │   └── __init__.py      # Top-level model exports
 │   ├── repositories/    # Data access layer
 │   │   ├── __init__.py      # ✨ Repository exports
 │   │   └── user.py          # User repository with async MongoDB operations
