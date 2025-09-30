@@ -43,6 +43,25 @@ class AppConfig(BaseSettings):
         default="backend_fastapi_app", description="MongoDB database name"
     )
 
+    # PostgreSQL  settings
+    postgres_user: str = Field(default="admin", description="PostgreSQL username")
+    postgres_password: str = Field(default="example", description="PostgreSQL password")
+    postgres_db: str = Field(
+        default="database_develop", description="PostgreSQL database name"
+    )
+    postgres_host: str = Field(default="postgresql", description="PostgreSQL host")
+    postgres_port: int = Field(default=5432, description="PostgreSQL port")
+
+    @property
+    def postgre_database_url(self) -> str:
+        """Construct PostgreSQL database URL from components."""
+        return f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+
+    # Redis settings
+    redis_host: str = Field(default="redis", description="Redis host")
+    redis_port: int = Field(default=6379, description="Redis port")
+    redis_db: int = Field(default=0, description="Redis database")
+
     # Logging settings
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
         default="INFO", description="Logging level"

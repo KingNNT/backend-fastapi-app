@@ -4,7 +4,7 @@ from uuid import UUID
 from beanie import PydanticObjectId
 
 from app.internal.dtos import UserCreate, UserResponse, UserUpdate
-from app.internal.models import User
+from app.internal.models.no_sql import User
 from app.internal.repositories import UserRepository
 from app.internal.exceptions import UserAlreadyExists, UserNotFound
 

@@ -4,11 +4,13 @@ networks:
 
 volumes:
     mongodb_data:
+    postgresql_volume:
+    redis_data:
 
 services:
     python:
-        container_name: ${APP_NAME}-server_python
-        hostname: ${APP_NAME}-server_python
+        container_name: ${APP_NAME}_python
+        hostname: ${APP_NAME}-python
         restart: unless-stopped
         build:
             context: .
@@ -60,3 +62,47 @@ services:
             timeout: 10s
             retries: 3
             start_period: 40s
+
+    postgresql:
+        container_name: ${APP_NAME}-postgresql
+        hostname: ${APP_NAME}-postgresql
+        restart: unless-stopped
+        build:
+            context: .
+            dockerfile: .docker/development/postgresql/Dockerfile
+            args:
+                - POSTGRES_USER=${POSTGRES_USER}
+                - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+                - POSTGRES_DB=${POSTGRES_DB}
+        networks:
+            - network_app
+        ports:
+            - 5442:5432
+        volumes:
+            - postgresql_volume:/var/lib/postgresql/data
+        environment:
+            - POSTGRES_USER=${POSTGRES_USER}
+            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+            - POSTGRES_DB=${POSTGRES_DB}
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
+            interval: 30s
+            timeout: 60s
+            retries: 5
+            start_period: 80s
+
+    redis:
+        container_name: ${APP_NAME}-redis
+        hostname: ${APP_NAME}-redis
+        restart: unless-stopped
+        build:
+            context: .docker/development/redis
+            dockerfile: Dockerfile
+        networks:
+            - network_app
+        ports:
+            - 6379:6379
+        volumes:
+            - redis_data:/data
+        healthcheck:
+            test: ["CMD", "redis-cli", "--raw", "incr", "ping"]

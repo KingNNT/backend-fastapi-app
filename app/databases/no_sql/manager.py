@@ -1,11 +1,8 @@
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator
-
 import motor.motor_asyncio
 from beanie import init_beanie
 
 from app.configs.app import get_app_config
-from app.internal.models.user import User
+from app.internal.models.no_sql import User
 
 
 class DatabaseManager:
@@ -37,13 +34,3 @@ db_manager = DatabaseManager()
 async def get_database():
     """Get database instance (for dependency injection)."""
     return db_manager.database
-
-
-@asynccontextmanager
-async def database_lifespan(app) -> AsyncGenerator[None, None]:
-    """Database lifespan context manager for FastAPI."""
-    # Startup
-    await db_manager.connect()
-    yield
-    # Shutdown
-    await db_manager.close()

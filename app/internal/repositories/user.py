@@ -1,7 +1,7 @@
 # ruff: noqa: E711
 from beanie import PydanticObjectId
 
-from app.internal.models.user import User
+from app.internal.models.no_sql import User
 
 
 class UserRepository:
