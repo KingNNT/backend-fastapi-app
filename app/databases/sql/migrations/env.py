@@ -75,9 +75,12 @@ async def run_async_migrations() -> None:
     and associate a connection with the context.
 
     """
+    url = config.get_main_option("sqlalchemy.url")
+    if url is None:
+        raise RuntimeError("Database URL is not configured in alembic.ini")
 
     connectable = create_async_engine(
-        config.get_main_option("sqlalchemy.url"),
+        url,
         poolclass=pool.NullPool,
     )
 

@@ -37,6 +37,11 @@ db_manager = DatabaseManager()
 
 async def get_database():
     """Get database session (for dependency injection)."""
+    if db_manager.session_maker is None:
+        raise RuntimeError(
+            "Database is not connected. Call db_manager.connect() first."
+        )
+
     async with db_manager.session_maker() as session:
         try:
             yield session

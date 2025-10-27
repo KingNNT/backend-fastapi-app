@@ -74,6 +74,9 @@ async def main():
     """Main seeder function"""
     await db_manager.connect()
 
+    if db_manager.session_maker is None:
+        raise RuntimeError("Database session maker is not initialized")
+
     async with db_manager.session_maker() as session:
         await UserSeeder.seed_users(session)
 

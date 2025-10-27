@@ -25,6 +25,9 @@ async def run_all_seeders():
         # Connect to database
         await db_manager.connect()
 
+        if db_manager.session_maker is None:
+            raise RuntimeError("Database session maker is not initialized")
+
         async with db_manager.session_maker() as session:
             print("👥 Seeding users...")
             await UserSeeder.seed_users(session)
@@ -47,6 +50,9 @@ async def clear_all_data():
     try:
         # Connect to database
         await db_manager.connect()
+
+        if db_manager.session_maker is None:
+            raise RuntimeError("Database session maker is not initialized")
 
         async with db_manager.session_maker() as session:
             # Clear employee data
