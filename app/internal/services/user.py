@@ -41,7 +41,7 @@ class UserService:
             username=user_data.username,
             full_name=user_data.full_name,
             is_active=user_data.is_active,
-            password_hash=f"hashed_{user_data.password}",  # Simplified for demo
+            password=f"hashed_{user_data.password}",  # Simplified for demo
         )
 
         # Set audit fields
