@@ -11,10 +11,22 @@ A modern, production-ready FastAPI backend application following Clean Architect
 
 ### Getting Started
 
+Create a new project from this template with a single command:
+
 ```bash
-# Clone and start the application
-git clone <repository-url>
-cd backend-fastapi-app
+curl -fsSL https://raw.githubusercontent.com/KingNNT/backend-fastapi-app/develop/install.sh | bash
+```
+
+The installer will prompt you for:
+- **Project name** (kebab-case, e.g., `my-awesome-api`)
+- **Project description**
+- **Author name and email**
+
+Then it automatically clones the template, updates all configuration files, and initializes a fresh git repository.
+
+After installation:
+```bash
+cd your-project-name
 make dev
 ```
 
