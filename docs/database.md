@@ -4,54 +4,57 @@
 
 This application uses a **dual database architecture** combining PostgreSQL (relational) and MongoDB (document) databases. This hybrid approach allows optimal data storage based on data structure and access patterns.
 
-## Technology Stack
+## Database Strategy
 
-### PostgreSQL (SQL)
+### PostgreSQL (User Entity)
+
 - **Database**: PostgreSQL 16+
 - **ORM**: SQLModel (type-safe SQL operations)
 - **Migrations**: Alembic (schema versioning)
 - **Driver**: AsyncPG (async Python driver)
-- **Connection**: Async connection pooling via SQLAlchemy
+- **Use Case**: User entity with structured data and ACID requirements
 
-### MongoDB (NoSQL)
+### MongoDB (Log Entity)
+
 - **Database**: MongoDB 7.0+
 - **Driver**: Motor (async Python driver)
 - **ODM**: Beanie (async ODM built on Pydantic)
-- **Connection**: Async connection pooling
+- **Use Case**: Audit logs with flexible schema and high write throughput
 
 ## When to Use Which Database
 
 ### Use PostgreSQL for:
+
 - Structured data with relationships (foreign keys)
 - Data requiring ACID transactions
 - Complex queries with JOINs
 - Data that changes schema infrequently
-- Reporting and analytics
+- Entities with strict validation requirements
 
 ### Use MongoDB for:
+
 - Flexible/dynamic schemas
 - Nested/hierarchical data structures
-- High-volume read operations
+- High-volume write operations
+- Audit trails and event logs
 - Rapidly evolving data models
-- Document-based data
 
 ## Database Configuration
 
 ### Connection Settings
 
 ```python
-# app/configs/app.py
+# app/infrastructure/configs/app.py
 class AppConfig(BaseSettings):
     # PostgreSQL
     postgre_database_url: str = "postgresql+asyncpg://admin:password@localhost:5432/database_develop"
 
     # MongoDB
     mongodb_url: str = "mongodb://localhost:27017"
-    mongodb_database: str = "app_db"
-    mongodb_test_database: str = "test_db"
+    mongodb_db_name: str = "backend_fastapi_app_dev"
+    mongodb_test_db_name: str = "backend_fastapi_app_test"
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env")
 ```
 
 ### Environment Variables
@@ -62,137 +65,59 @@ POSTGRE_DATABASE_URL=postgresql+asyncpg://admin:password@postgresql:5432/databas
 
 # MongoDB
 MONGODB_URL=mongodb://mongodb:27017
-MONGODB_DATABASE=app_db
-MONGODB_TEST_DATABASE=test_db
+MONGODB_DB_NAME=backend_fastapi_app_dev
+MONGODB_TEST_DB_NAME=backend_fastapi_app_test
 ```
 
 ### Unified Connection Management
 
-Both databases are managed through a unified lifespan context manager:
+Both databases are managed through the infrastructure layer's lifespan context:
 
 ```python
-# app/dependencies/lifespan.py
+# app/infrastructure/setup.py
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def clean_architecture_lifespan(app: FastAPI):
     # Startup: Initialize both databases
-    await nosql_db_manager.connect()  # MongoDB
-    await sql_db_manager.connect()     # PostgreSQL
+    await postgres_manager.connect()
+    await mongodb_manager.connect()
+
+    # Setup dependencies
+    session = await postgres_manager.get_session()
+    setup_dependencies(session)
 
     yield  # Application runs
 
     # Shutdown: Close both connections
-    await nosql_db_manager.close()
-    await sql_db_manager.close()
+    await postgres_manager.disconnect()
+    await mongodb_manager.disconnect()
 ```
 
-## Schema Design
+## PostgreSQL Schema
 
-### PostgreSQL Models (SQLModel)
-
-All SQL models inherit from `BaseModel` providing common audit fields:
+### User Model (SQLModel)
 
 ```python
-# app/internal/models/sql/base.py
-class BaseModel(SQLModel, table=False):
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.now)
-    created_by: Optional[str] = Field(default=None)
-    updated_at: Optional[datetime] = Field(default=None)
-    updated_by: Optional[str] = Field(default=None)
-    deleted_at: Optional[datetime] = Field(default=None)
-    deleted_by: Optional[str] = Field(default=None)
-
-    def soft_delete(self, deleted_by: Optional[str] = None):
-        self.deleted_at = datetime.now()
-        self.deleted_by = deleted_by
-
-    def is_deleted(self) -> bool:
-        return self.deleted_at is not None
-```
-
-**User Table Example:**
-```python
-# app/internal/models/sql/user.py
-class User(BaseModel, table=True):
+# app/infrastructure/persistence/postgresql/models/user.py
+class UserModel(SQLModel, table=True):
     __tablename__ = "users"
 
-    first_name: str = Field(description="First name")
-    last_name: str = Field(description="Last name")
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    email: str = Field(unique=True, index=True)
+    username: str = Field(unique=True, index=True)
+    password_hash: str
+    full_name: str | None = None
+    is_active: bool = Field(default=True)
+
+    # Audit fields
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_by: str | None = None
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_by: str | None = None
+    deleted_at: datetime | None = None
+    deleted_by: str | None = None
 ```
 
-### MongoDB Models (Beanie)
-
-All NoSQL models inherit from `BaseEntity` (Beanie Document):
-
-```python
-# app/internal/models/no_sql/base.py
-class BaseEntity(Document):
-    id: UUID = Field(default_factory=uuid4)
-    created_at: datetime = Field(default_factory=datetime.now)
-    created_by: Optional[str] = Field(None)
-    updated_at: Optional[datetime] = Field(None)
-    updated_by: Optional[str] = Field(None)
-    deleted_at: Optional[datetime] = Field(None)
-    deleted_by: Optional[str] = Field(None)
-
-    def soft_delete(self, deleted_by: Optional[str] = None):
-        self.deleted_at = datetime.now()
-        self.deleted_by = deleted_by
-
-    def is_deleted(self) -> bool:
-        return self.deleted_at is not None
-```
-
-**User Collection Example:**
-```python
-# app/internal/models/no_sql/user.py
-class User(BaseEntity):
-    email: Indexed(str, unique=True) = Field(...)
-    username: Indexed(str, unique=True) = Field(...)
-    full_name: Optional[str] = Field(None)
-
-    class Settings:
-        name = "users"
-        indexes = [
-            IndexModel([("email", 1)], unique=True),
-            IndexModel([("username", 1)], unique=True),
-        ]
-```
-
-## Data Types and Validation
-
-### Field Types
-
-- **UUID**: For unique identifiers
-- **datetime**: Timezone-aware timestamps
-- **str**: Text fields with length constraints
-- **bool**: Boolean flags
-- **Optional**: Nullable fields
-
-### Validation Rules
-
-```python
-# Email validation
-email: Indexed(str, unique=True) = Field(
-    ...,
-    regex=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-)
-
-# Username validation
-username: Indexed(str, unique=True) = Field(
-    ...,
-    min_length=3,
-    max_length=50,
-    regex=r'^[a-zA-Z0-9_]+$'
-)
-
-# Password validation (in DTO)
-password: str = Field(..., min_length=8)
-```
-
-## PostgreSQL Migrations (Alembic)
-
-### Migration Workflow
+### PostgreSQL Migrations (Alembic)
 
 ```bash
 # Generate new migration after model changes
@@ -214,11 +139,11 @@ make migrate-current
 ### Migration File Structure
 
 ```
-app/databases/sql/migrations/
+app/infrastructure/persistence/postgresql/migrations/
 ├── env.py                    # Alembic environment config
-├── versions/
-│   └── 20250930_xxxx_description.py  # Migration files
-└── alembic.ini               # Alembic configuration
+├── script.py.mako            # Migration template
+└── versions/
+    └── 20250930_xxxx_description.py  # Migration files
 ```
 
 ### Database Seeding
@@ -234,17 +159,26 @@ make seed-clear
 make reseed
 ```
 
-## Indexing Strategy
+## MongoDB Schema
 
-### PostgreSQL Indexes
-
-Indexes are created via Alembic migrations:
+### Log Model (Beanie)
 
 ```python
-# In migration file
-def upgrade():
-    op.create_index('ix_users_email', 'users', ['email'], unique=True)
-    op.create_index('ix_users_created_at', 'users', ['created_at'])
+# app/infrastructure/persistence/mongodb/models/log.py
+class LogModel(Document):
+    id: UUID = Field(default_factory=uuid4)
+    action: str = Field(...)
+    user_id: str | None = None
+    metadata: dict = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    class Settings:
+        name = "logs"
+        indexes = [
+            IndexModel([("user_id", 1)]),
+            IndexModel([("action", 1)]),
+            IndexModel([("created_at", -1)]),
+        ]
 ```
 
 ### MongoDB Indexes
@@ -252,202 +186,174 @@ def upgrade():
 Beanie automatically creates indexes based on model definitions:
 
 ```python
-# Single field indexes
-email: Indexed(str, unique=True)  # Unique index on email
-username: Indexed(str, unique=True)  # Unique index on username
-
-# Compound indexes via Settings
 class Settings:
     indexes = [
-        IndexModel([("email", 1)], unique=True),
-        IndexModel([("created_at", -1)]),  # Descending for latest first
-        IndexModel([("deleted_at", 1)]),   # For soft deletion queries
+        IndexModel([("user_id", 1)]),           # Ascending index
+        IndexModel([("created_at", -1)]),       # Descending index
+        IndexModel([("email", 1)], unique=True), # Unique index
     ]
 ```
 
-### Index Performance
-
-- **Query optimization**: Indexes speed up common queries
-- **Unique constraints**: Prevent duplicate data
-- **Sorting**: Indexes support efficient sorting
-- **Filtering**: Indexes optimize WHERE clauses
-
 ## Repository Pattern
 
-### Base Repository
+### Domain Repository Interfaces
 
 ```python
-class BaseRepository:
-    def __init__(self, model_class):
-        self.model = model_class
+# app/core/domain/repositories/user.py
+from typing import Protocol
 
-    async def create(self, data: dict):
-        instance = self.model(**data)
-        await instance.save()
-        return instance
+class IUserWriteRepository(Protocol):
+    async def save(self, aggregate: UserAggregate) -> None: ...
+    async def delete(self, aggregate: UserAggregate) -> None: ...
+    async def exists_by_email(self, email: Email) -> bool: ...
+    async def exists_by_username(self, username: Username) -> bool: ...
 
-    async def get_by_id(self, id: UUID) -> Optional[Document]:
-        return await self.model.find_one({"id": id, "deleted_at": None})
-
-    async def get_all(self, skip: int = 0, limit: int = 100) -> List[Document]:
-        return await self.model.find({"deleted_at": None}).skip(skip).limit(limit).to_list()
-
-    async def update(self, id: UUID, data: dict):
-        await self.model.find_one({"id": id}).update({"$set": data})
-        return await self.get_by_id(id)
-
-    async def delete(self, id: UUID):
-        instance = await self.get_by_id(id)
-        if instance:
-            instance.soft_delete()
-            await instance.save()
-        return instance
+class IUserReadRepository(Protocol):
+    async def get_by_id(self, user_id: UserId) -> UserAggregate | None: ...
+    async def get_by_email(self, email: Email) -> UserAggregate | None: ...
+    async def list_all(self, skip: int, limit: int) -> list[UserAggregate]: ...
+    async def count(self) -> int: ...
 ```
 
-### User Repository
+### PostgreSQL Repository Implementation
 
 ```python
-class UserRepository(BaseRepository):
-    def __init__(self):
-        super().__init__(User)
+# app/infrastructure/persistence/postgresql/repositories/user_write.py
+class PostgresUserWriteRepository:
+    def __init__(self, session: AsyncSession):
+        self._session = session
 
-    async def get_by_email(self, email: str) -> Optional[User]:
-        return await self.model.find_one({"email": email, "deleted_at": None})
+    async def save(self, aggregate: UserAggregate) -> None:
+        model = UserMapper.to_model(aggregate)
+        existing = await self._session.get(UserModel, model.id)
 
-    async def get_by_username(self, username: str) -> Optional[User]:
-        return await self.model.find_one({"username": username, "deleted_at": None})
+        if existing:
+            UserMapper.update_model(existing, aggregate)
+            await self._session.commit()
+        else:
+            self._session.add(model)
+            await self._session.commit()
 
-    async def email_exists(self, email: str) -> bool:
-        user = await self.model.find_one({"email": email, "deleted_at": None})
-        return user is not None
+    async def exists_by_email(self, email: Email) -> bool:
+        stmt = select(UserModel).where(
+            UserModel.email == str(email),
+            UserModel.deleted_at.is_(None)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none() is not None
+```
 
-    async def username_exists(self, username: str) -> bool:
-        user = await self.model.find_one({"username": username, "deleted_at": None})
-        return user is not None
+### MongoDB Repository Implementation
+
+```python
+# app/infrastructure/persistence/mongodb/repositories/log_write.py
+class MongoLogWriteRepository:
+    async def save(self, aggregate: LogAggregate) -> None:
+        model = LogMapper.to_model(aggregate)
+        await model.save()
+
+    async def delete(self, aggregate: LogAggregate) -> None:
+        aggregate.soft_delete()
+        await self.save(aggregate)
+```
+
+## Mapper Pattern
+
+Convert between domain entities and persistence models:
+
+```python
+# app/infrastructure/persistence/postgresql/mappers/user.py
+class UserMapper:
+    @staticmethod
+    def to_model(aggregate: UserAggregate) -> UserModel:
+        user = aggregate.user
+        return UserModel(
+            id=user.id.value,
+            email=str(user.email),
+            username=str(user.username),
+            password_hash=user.password_hash,
+            full_name=user.full_name,
+            is_active=user.is_active,
+            created_at=user.created_at,
+            updated_at=user.updated_at,
+            deleted_at=user.deleted_at,
+        )
+
+    @staticmethod
+    def to_aggregate(model: UserModel) -> UserAggregate:
+        user = User(
+            id=UserId(model.id),
+            email=Email(model.email),
+            username=Username(model.username),
+            password_hash=model.password_hash,
+            full_name=model.full_name,
+            is_active=model.is_active,
+        )
+        user.created_at = model.created_at
+        user.updated_at = model.updated_at
+        user.deleted_at = model.deleted_at
+        return UserAggregate.reconstitute(user)
+
+    @staticmethod
+    def to_read_model(model: UserModel) -> UserReadModel:
+        return UserReadModel(
+            id=str(model.id),
+            email=model.email,
+            username=model.username,
+            full_name=model.full_name,
+            is_active=model.is_active,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+        )
 ```
 
 ## Query Patterns
 
-### Basic Queries
+### PostgreSQL Queries
+
+```python
+# Basic query
+stmt = select(UserModel).where(UserModel.id == user_id)
+result = await session.execute(stmt)
+user = result.scalar_one_or_none()
+
+# Pagination
+stmt = select(UserModel).where(
+    UserModel.deleted_at.is_(None)
+).offset(skip).limit(limit)
+result = await session.execute(stmt)
+users = result.scalars().all()
+
+# Count
+stmt = select(func.count()).select_from(UserModel).where(
+    UserModel.deleted_at.is_(None)
+)
+result = await session.execute(stmt)
+count = result.scalar_one()
+```
+
+### MongoDB Queries
 
 ```python
 # Find by ID
-user = await User.find_one({"id": user_id, "deleted_at": None})
-
-# Find all active users
-users = await User.find({"is_active": True, "deleted_at": None}).to_list()
+log = await LogModel.find_one(LogModel.id == log_id)
 
 # Find with pagination
-users = await User.find({"deleted_at": None}).skip(10).limit(20).to_list()
+logs = await LogModel.find(
+    LogModel.deleted_at == None
+).skip(skip).limit(limit).to_list()
 
-# Find with sorting
-users = await User.find({"deleted_at": None}).sort(-User.created_at).to_list()
-```
+# Find by user
+logs = await LogModel.find(
+    LogModel.user_id == user_id
+).sort(-LogModel.created_at).to_list()
 
-### Complex Queries
-
-```python
-# Find users created in the last 30 days
-from datetime import datetime, timedelta
-
-thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
-recent_users = await User.find({
-    "created_at": {"$gte": thirty_days_ago},
-    "deleted_at": None
-}).to_list()
-
-# Find users by email domain
-gmail_users = await User.find({
-    "email": {"$regex": r"@gmail\.com$"},
-    "deleted_at": None
-}).to_list()
-
-# Count active users
-active_count = await User.find({"is_active": True, "deleted_at": None}).count()
-```
-
-### Aggregation Queries
-
-```python
-# Count users by status
+# Aggregation
 pipeline = [
     {"$match": {"deleted_at": None}},
-    {"$group": {"_id": "$is_active", "count": {"$sum": 1}}}
+    {"$group": {"_id": "$action", "count": {"$sum": 1}}}
 ]
-result = await User.aggregate(pipeline).to_list()
-
-# Users created per day
-pipeline = [
-    {"$match": {"deleted_at": None}},
-    {"$group": {
-        "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}},
-        "count": {"$sum": 1}
-    }},
-    {"$sort": {"_id": 1}}
-]
-daily_counts = await User.aggregate(pipeline).to_list()
-```
-
-## Data Operations
-
-### Create Operations
-
-```python
-# Create new user
-user_data = {
-    "email": "user@example.com",
-    "username": "johndoe",
-    "full_name": "John Doe",
-    "password_hash": "hashed_password",
-    "is_active": True
-}
-user = User(**user_data)
-await user.save()
-```
-
-### Read Operations
-
-```python
-# Get single user
-user = await User.get(user_id)
-
-# Get multiple users
-users = await User.find({"is_active": True}).to_list()
-
-# Get with conditions
-user = await User.find_one({"email": "user@example.com"})
-```
-
-### Update Operations
-
-```python
-# Update single field
-await user.update({"$set": {"full_name": "New Name"}})
-
-# Update multiple fields
-await user.update({"$set": {
-    "full_name": "New Name",
-    "updated_at": datetime.now(timezone.utc)
-}})
-
-# Update with conditions
-await User.find({"is_active": False}).update({"$set": {"is_active": True}})
-```
-
-### Delete Operations
-
-```python
-# Soft delete (preferred)
-user.soft_delete()
-await user.save()
-
-# Hard delete (use with caution)
-await user.delete()
-
-# Bulk soft delete
-await User.find({"is_active": False}).update({"$set": {
-    "deleted_at": datetime.now(timezone.utc)
-}})
+result = await LogModel.aggregate(pipeline).to_list()
 ```
 
 ## Audit Trail
@@ -462,77 +368,96 @@ All entities automatically track:
 ### Implementation
 
 ```python
-def set_audit_fields(self, user_id: Optional[UUID] = None):
-    now = utc_now()
-    if not self.id:  # New document
-        self.created_at = now
-        self.created_by = user_id
-    self.updated_at = now
-    self.updated_by = user_id
-```
+# Domain entity with audit fields
+class BaseEntity:
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_by: str | None = None
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_by: str | None = None
+    deleted_at: datetime | None = None
+    deleted_by: str | None = None
 
-### Querying Audit Data
+    def soft_delete(self, deleted_by: str | None = None) -> None:
+        self.deleted_at = datetime.now(timezone.utc)
+        self.deleted_by = deleted_by
+        self.updated_at = datetime.now(timezone.utc)
 
-```python
-# Find all changes by user
-changes = await User.find({"updated_by": user_id}).to_list()
-
-# Find recently modified users
-recent_changes = await User.find({
-    "updated_at": {"$gte": datetime.now(timezone.utc) - timedelta(hours=24)}
-}).to_list()
+    @property
+    def is_deleted(self) -> bool:
+        return self.deleted_at is not None
 ```
 
 ## Soft Deletion
 
-### Implementation
+### Pattern
+
+Records are never hard-deleted. Instead, they're marked with `deleted_at`:
 
 ```python
-@property
-def is_deleted(self) -> bool:
-    return self.deleted_at is not None
+# Soft delete
+async def delete(self, aggregate: UserAggregate) -> None:
+    aggregate.soft_delete()
+    await self.save(aggregate)
 
-def soft_delete(self, deleted_by: Optional[UUID] = None):
-    now = utc_now()
-    self.deleted_at = now
-    self.deleted_by = deleted_by
-    self.updated_at = now
-    self.updated_by = deleted_by
+# Query non-deleted records
+async def list_all(self, skip: int, limit: int) -> list[UserAggregate]:
+    stmt = select(UserModel).where(
+        UserModel.deleted_at.is_(None)  # Only non-deleted
+    ).offset(skip).limit(limit)
+    ...
 ```
 
-### Querying Non-Deleted Records
+## Event-Driven Synchronization
 
-```python
-# Always include deleted_at filter
-active_users = await User.find({"deleted_at": None}).to_list()
+Domain events synchronize data between databases:
 
-# Repository pattern handles this automatically
-users = await user_repository.get_all()  # Only non-deleted
+```
+User Created (PostgreSQL)
+    ↓
+UserCreated Event Published
+    ↓
+UserEventHandler receives event
+    ↓
+CreateLogCommand executed
+    ↓
+Log Created (MongoDB)
 ```
 
-## Migration Strategy
-
-### Schema Changes
-
 ```python
-# Migration script example
-async def migrate_add_field():
-    await User.find({}).update({"$set": {"new_field": "default_value"}})
-
-# Index changes
-async def migrate_add_index():
-    await User.create_indexes()
+# Event handler creates audit log
+class UserEventHandler:
+    async def on_user_created(self, event: UserCreated) -> None:
+        command = CreateLogCommand(
+            action="USER_CREATED",
+            user_id=event.user_id,
+            metadata={"email": event.email, "username": event.username},
+        )
+        await self._log_handler.handle(command)
 ```
 
-### Data Migrations
+## Database Management Commands
 
-```python
-# Data transformation example
-async def migrate_email_lowercase():
-    users = await User.find({}).to_list()
-    for user in users:
-        user.email = user.email.lower()
-        await user.save()
+```bash
+# Both databases
+make db-up         # Start both
+make db-down       # Stop both
+make db-reset      # Reset all data
+
+# PostgreSQL
+make postgres-up   # Start PostgreSQL
+make postgres-down # Stop PostgreSQL
+make shell-postgres # Access PostgreSQL shell
+make migrate-up    # Apply migrations
+make seed          # Seed data
+
+# MongoDB
+make mongo-up      # Start MongoDB
+make mongo-down    # Stop MongoDB
+make shell-mongo   # Access MongoDB shell
+
+# Test databases
+make setup-test-db    # Setup test databases
+make test-db-reset    # Reset test databases
 ```
 
 ## Performance Optimization
@@ -540,126 +465,81 @@ async def migrate_email_lowercase():
 ### Connection Pooling
 
 ```python
-# Motor connection pool settings
+# PostgreSQL connection pool
+engine = create_async_engine(
+    database_url,
+    pool_size=10,
+    max_overflow=20,
+    pool_pre_ping=True,
+)
+
+# MongoDB connection pool
 client = AsyncIOMotorClient(
     mongodb_url,
     maxPoolSize=50,
     minPoolSize=10,
-    maxIdleTimeMS=30000,
-    waitQueueTimeoutMS=5000
 )
 ```
 
-### Query Optimization
+### Indexing Strategy
+
+PostgreSQL indexes via migrations:
 
 ```python
-# Use projection to limit fields
-users = await User.find({"is_active": True}, {"email": 1, "username": 1}).to_list()
-
-# Use explain() for query analysis
-query = User.find({"email": "user@example.com"})
-explanation = await query.explain()
+def upgrade():
+    op.create_index('ix_users_email', 'users', ['email'], unique=True)
+    op.create_index('ix_users_username', 'users', ['username'], unique=True)
+    op.create_index('ix_users_deleted_at', 'users', ['deleted_at'])
 ```
 
-### Batch Operations
+MongoDB indexes via model settings:
 
 ```python
-# Bulk insert
-users_data = [{"email": f"user{i}@example.com", "username": f"user{i}"} for i in range(100)]
-await User.insert_many([User(**data) for data in users_data])
-
-# Bulk update
-await User.find({"is_active": False}).update({"$set": {"is_active": True}})
+class Settings:
+    indexes = [
+        IndexModel([("email", 1)], unique=True),
+        IndexModel([("created_at", -1)]),
+    ]
 ```
 
-## Backup and Recovery
+## Testing with Databases
 
-### Database Backup
+### Unit Tests
 
-```bash
-# MongoDB dump
-mongodump --uri="mongodb://localhost:27017/app_db" --out=/backup/
-
-# Restore
-mongorestore --uri="mongodb://localhost:27017/app_db" /backup/app_db/
-```
-
-### Docker Backup
-
-```bash
-# Backup MongoDB data volume
-docker run --rm -v backend-fastapi-app_mongodb_data:/data -v $(pwd):/backup alpine tar czf /backup/mongodb_backup.tar.gz /data
-
-# Restore
-docker run --rm -v backend-fastapi-app_mongodb_data:/data -v $(pwd):/backup alpine tar xzf /backup/mongodb_backup.tar.gz -C /
-```
-
-## Testing with Database
-
-### Test Database Setup
+Mock repositories for fast tests:
 
 ```python
-# Test configuration
-class TestDatabaseSettings(DatabaseSettings):
-    mongodb_db_name: str = "test_db"
-
-# Test fixtures
 @pytest.fixture
-async def test_db():
-    await init_database(test=True)
-    yield
-    await User.delete_all()  # Clean up
+def mock_repository():
+    return AsyncMock(spec=IUserRepository)
+
+async def test_create_user(mock_repository):
+    mock_repository.exists_by_email.return_value = False
+    handler = CreateUserHandler(mock_repository, ...)
+    result = await handler.handle(command)
+    assert result is not None
 ```
 
-### Test Data Creation
+### Integration Tests
+
+Use testcontainers for isolated tests:
 
 ```python
-# Test user factory
-async def create_test_user(**kwargs):
-    user_data = {
-        "email": "test@example.com",
-        "username": "testuser",
-        "password_hash": "hashed_password",
-        "is_active": True,
-        **kwargs
-    }
-    user = User(**user_data)
-    await user.save()
-    return user
+@pytest.fixture
+async def postgres_session():
+    # Testcontainers creates isolated PostgreSQL
+    async with AsyncSession(engine) as session:
+        yield session
 ```
 
-## Monitoring and Maintenance
+### E2E Tests
 
-### Database Monitoring
-
-```python
-# Connection status
-async def check_database_health():
-    try:
-        await User.find_one({})
-        return {"status": "healthy"}
-    except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}
-```
-
-### Performance Metrics
+Use separate test databases:
 
 ```python
-# Query performance
-async def get_query_stats():
-    stats = await User.get_motor_collection().index_information()
-    return stats
-```
-
-### Maintenance Tasks
-
-```python
-# Clean up old soft-deleted records
-async def cleanup_old_deleted_records():
-    cutoff_date = datetime.now(timezone.utc) - timedelta(days=365)
-    await User.find({
-        "deleted_at": {"$lt": cutoff_date}
-    }).delete()
+# Test databases on running Docker services
+POSTGRE_DATABASE_URL=...database_test
+MONGODB_DB_NAME=backend_fastapi_app_test
 ```
 
 ## Security Considerations
@@ -667,18 +547,11 @@ async def cleanup_old_deleted_records():
 ### Data Protection
 
 - **Password hashing**: Never store plain text passwords
-- **Sensitive data**: Exclude from API responses
+- **Sensitive data**: Excluded from API responses
 - **Access control**: Implement proper authentication
-- **Data encryption**: MongoDB encryption at rest
 
 ### Query Security
 
-- **Input validation**: Pydantic models prevent injection
-- **Parameterized queries**: Beanie handles query building
+- **Input validation**: Pydantic models and Value Objects
+- **Parameterized queries**: SQLAlchemy handles query building
 - **Access patterns**: Repository pattern controls data access
-
-### Audit Security
-
-- **Immutable audit**: Audit fields should not be modifiable
-- **Retention policy**: Define how long to keep audit data
-- **Access logging**: Track who accesses audit information

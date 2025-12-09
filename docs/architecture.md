@@ -2,421 +2,810 @@
 
 ## Overview
 
-This FastAPI application follows clean architecture principles with clear separation of concerns, ensuring maintainability, testability, and scalability. The architecture incorporates modern design patterns including singleton services, barrel exports, and comprehensive dependency injection.
+This FastAPI application follows **Clean Architecture** with **Domain-Driven Design (DDD)** tactical patterns and **CQRS (Command Query Responsibility Segregation)**. The architecture ensures maintainability, testability, and scalability through clear layer separation and dependency inversion.
 
 ## Clean Architecture Layers
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                   API Layer                         │
-│         (FastAPI Routers + Middleware)              │
-│  • V1 Router Architecture with centralized routing  │
-│  • Request/Response middleware with logging         │
-│  • Security headers and timing middleware          │
-├─────────────────────────────────────────────────────┤
-│                Business Logic                       │
-│              (Singleton Services)                   │
-│  • Singleton pattern with dependency injection     │
-│  • Domain exception handling                       │
-│  • Business rule validation                        │
-├─────────────────────────────────────────────────────┤
-│                Data Access                          │
-│            (Repository Pattern)                     │
-│  • Abstract data access layer                      │
-│  • MongoDB operations encapsulation               │
-│  • Query optimization and caching                 │
-├─────────────────────────────────────────────────────┤
-│                   Database                          │
-│         (MongoDB + Beanie ODM + Motor)             │
-│  • Async operations with connection pooling       │
-│  • Document-based storage with schema validation  │
-│  • Audit trail and soft deletion support         │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    PRESENTATION LAYER                        │
+│              (FastAPI Controllers + DTOs)                    │
+│   • REST API controllers with version management             │
+│   • Request/Response DTOs                                    │
+│   • FastAPI dependency injection                             │
+├─────────────────────────────────────────────────────────────┤
+│                    APPLICATION LAYER                         │
+│                (Commands + Queries + Handlers)               │
+│   • CQRS command handlers (write operations)                 │
+│   • CQRS query handlers (read operations)                    │
+│   • Read models for optimized queries                        │
+├─────────────────────────────────────────────────────────────┤
+│                      DOMAIN LAYER                            │
+│         (Aggregates + Entities + Value Objects)              │
+│   • Domain aggregates (consistency boundaries)               │
+│   • Entities with identity and lifecycle                     │
+│   • Value objects (immutable, self-validating)               │
+│   • Domain events                                            │
+│   • Repository interfaces (Protocols)                        │
+├─────────────────────────────────────────────────────────────┤
+│                   INFRASTRUCTURE LAYER                       │
+│            (Databases + Event Bus + Mappers)                 │
+│   • PostgreSQL repository implementations                    │
+│   • MongoDB repository implementations                       │
+│   • In-memory event bus                                      │
+│   • Entity-Model mappers                                     │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Project Structure
 
 ```
 app/
-├── configs/           # Configuration modules
-│   ├── __init__.py   # ✨ Barrel exports for all configurations
-│   ├── app.py        # Main app configuration with Pydantic Settings
-│   ├── database.py   # MongoDB connection and Beanie initialization
-│   ├── logging.py    # Global logging configuration with datetime
-│   └── version.py    # Version management and app metadata
+├── core/                          # INNER LAYERS (no framework dependencies)
+│   ├── domain/                    # Layer 1: DOMAIN (DDD patterns)
+│   │   ├── aggregates/            # Aggregate roots
+│   │   │   ├── user.py            # UserAggregate
+│   │   │   └── log.py             # LogAggregate
+│   │   ├── entities/              # Domain entities with identity
+│   │   │   ├── base.py            # BaseEntity with audit trail
+│   │   │   ├── user.py            # User entity
+│   │   │   └── log.py             # Log entity
+│   │   ├── value_objects/         # Immutable self-validating objects
+│   │   │   ├── email.py           # Email value object
+│   │   │   ├── username.py        # Username value object
+│   │   │   ├── user_id.py         # UserId value object
+│   │   │   └── log_id.py          # LogId value object
+│   │   ├── events/                # Domain events
+│   │   │   ├── base.py            # BaseDomainEvent
+│   │   │   ├── user_events.py     # UserCreated, UserUpdated, etc.
+│   │   │   └── log_events.py      # Log events
+│   │   ├── specifications/        # Business rules
+│   │   ├── services/              # Domain services
+│   │   │   └── user_service.py    # UserDomainService
+│   │   ├── repositories/          # Repository interfaces (Protocols)
+│   │   │   └── user.py            # IUserRepository, IUserWriteRepository
+│   │   └── exceptions/            # Domain exceptions
+│   │       ├── base.py            # DomainException
+│   │       ├── error_codes.py     # ErrorCode enum
+│   │       └── user.py            # UserNotFound, UserAlreadyExists
+│   │
+│   └── application/               # Layer 2: APPLICATION (CQRS)
+│       ├── commands/              # Write side
+│       │   ├── user/              # User commands
+│       │   │   ├── create_user.py # CreateUserCommand
+│       │   │   ├── update_user.py # UpdateUserCommand
+│       │   │   └── delete_user.py # DeleteUserCommand
+│       │   ├── log/               # Log commands
+│       │   └── handlers/          # Command handlers
+│       │       └── user_handlers.py
+│       ├── queries/               # Read side
+│       │   ├── user/              # User queries
+│       │   │   ├── get_user.py    # GetUserByIdQuery, GetUserByEmailQuery
+│       │   │   └── list_users.py  # ListUsersQuery
+│       │   ├── log/               # Log queries
+│       │   └── handlers/          # Query handlers
+│       │       └── user_handlers.py
+│       ├── read_models/           # Optimized read models
+│       │   └── user.py            # UserReadModel
+│       └── interfaces/            # Application interfaces
+│           └── event_bus.py       # IEventBus
 │
-├── dependencies/      # 🆕 Dependency injection and middleware
-│   ├── __init__.py   # Middleware exports for dependency injection
-│   └── middleware.py # Request logging, security headers, timing
+├── presentation/                  # Layer 3: PRESENTATION
+│   ├── api/                       # REST API controllers
+│   │   ├── v1/                    # API version 1
+│   │   │   ├── user.py            # User endpoints
+│   │   │   └── log.py             # Log endpoints
+│   │   └── system.py              # Health & version endpoints
+│   ├── dependencies/              # FastAPI dependency injection
+│   │   ├── handlers.py            # Handler factory functions
+│   │   ├── repositories.py        # Repository getters/setters
+│   │   └── services.py            # Service getters
+│   └── dtos/                      # Data Transfer Objects
+│       ├── user.py                # UserCreateRequest, UserResponse
+│       ├── log.py                 # Log DTOs
+│       └── response.py            # Standard response shapes
 │
-├── internal/          # Domain/business logic layer
-│   ├── __init__.py   # Internal module organization
-│   ├── dtos/         # Data Transfer Objects
-│   │   ├── __init__.py   # ✨ All DTOs exported via barrel pattern
-│   │   ├── system.py     # System-related DTOs
-│   │   └── user.py       # User-related DTOs and validation
-│   ├── exceptions/   # Domain exception hierarchy
-│   │   ├── __init__.py       # ✨ All exceptions with barrel exports
-│   │   ├── base.py           # Base exception classes
-│   │   ├── handlers.py       # Exception to HTTP response handlers
-│   │   ├── infrastructure.py # Infrastructure-related exceptions
-│   │   ├── user.py          # User domain exceptions
-│   │   └── validation.py    # Validation and business rule exceptions
-│   ├── models/       # MongoDB models with Beanie
-│   │   ├── __init__.py   # ✨ Model exports with barrel pattern
-│   │   ├── base.py       # BaseEntity with audit trail and soft delete
-│   │   └── user.py       # User model with indexes and validation
-│   ├── repositories/ # Data access layer
-│   │   ├── __init__.py   # ✨ Repository exports
-│   │   └── user.py       # User repository with async MongoDB operations
-│   └── services/     # Business logic with singleton pattern
-│       ├── __init__.py   # ✨ Service exports including dependency functions
-│       ├── system.py     # System service for health checks
-│       └── user.py       # 🔄 Singleton UserService with DI support
+├── infrastructure/                # Layer 4: INFRASTRUCTURE
+│   ├── configs/                   # Configuration
+│   │   ├── app.py                 # AppConfig (Pydantic Settings)
+│   │   ├── logging.py             # Logging configuration
+│   │   └── version.py             # Version management
+│   ├── persistence/               # Database implementations
+│   │   ├── postgresql/            # PostgreSQL (User entity)
+│   │   │   ├── models/            # SQLModel ORM models
+│   │   │   ├── repositories/      # Write/Read repositories
+│   │   │   ├── mappers/           # Entity <-> Model mappers
+│   │   │   ├── migrations/        # Alembic migrations
+│   │   │   ├── seeds/             # Database seeding
+│   │   │   └── database.py        # Connection manager
+│   │   └── mongodb/               # MongoDB (Log entity)
+│   │       ├── models/            # Beanie ODM models
+│   │       ├── repositories/      # Write/Read repositories
+│   │       ├── mappers/           # Entity <-> Model mappers
+│   │       └── database.py        # Connection manager
+│   ├── messaging/                 # Infrastructure services
+│   │   ├── event_bus.py           # InMemoryEventBus
+│   │   └── password_hasher.py     # Password hashing
+│   ├── event_handlers/            # Domain event handlers
+│   │   └── user_event_handlers.py # Creates audit logs
+│   ├── web/                       # Web infrastructure
+│   │   ├── middleware.py          # Request logging, security headers
+│   │   ├── exception_handlers.py  # Domain exception -> HTTP response
+│   │   └── response.py            # APIResponse utility
+│   └── setup.py                   # Dependency injection setup
 │
-├── routers/          # API endpoints with version organization
-│   ├── __init__.py   # Router organization
-│   ├── system.py     # System endpoints (health, version)
-│   └── v1/           # 🚀 Version 1 API with centralized management
-│       ├── __init__.py   # V1 router with /v1 prefix centralization
-│       └── user.py       # User CRUD endpoints
-│
-├── utils/            # Utility functions and helpers
-│   ├── __init__.py   # Utility exports
-│   └── response.py   # Standardized API response utilities
-│
-├── tests/            # Comprehensive test suite
-│   ├── __init__.py   # Test configuration
-│   ├── conftest.py   # Shared test fixtures and configuration
-│   ├── unit/         # Unit tests with comprehensive mocking
-│   └── e2e/          # End-to-end integration tests
-│
-└── main.py           # 🎯 Application entry point with global configuration
+└── main.py                        # Application entry point
+
+tests/                             # Test suite (outside app/)
+├── unit/                          # Unit tests with mocked dependencies
+│   ├── domain/                    # Domain layer tests
+│   └── application/               # Application layer tests
+├── integration/                   # Integration tests (testcontainers)
+├── e2e/                           # End-to-end tests
+└── conftest.py                    # Shared test fixtures
 ```
 
-## Key Architectural Features
+## Domain-Driven Design Patterns
 
-### 🔄 Singleton Pattern for Services
+### 1. Value Objects
 
-Services use the singleton pattern to ensure single instance throughout the application lifecycle:
+Immutable, self-validating objects that represent domain concepts:
 
 ```python
-class UserService:
-    _instance = None
-    _initialized = False
+# app/core/domain/value_objects/email.py
+@dataclass(frozen=True)
+class Email:
+    value: str
 
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(UserService, cls).__new__(cls)
-        return cls._instance
+    def __post_init__(self):
+        if not self._is_valid_email(self.value):
+            raise ValidationError("email", self.value, "Invalid email format")
 
-    def __init__(self):
-        if not self._initialized:
-            self.repository = UserRepository()
-            UserService._initialized = True
+    @staticmethod
+    def _is_valid_email(email: str) -> bool:
+        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        return bool(re.match(pattern, email))
 
-# Dependency injection support
-def get_user_service() -> UserService:
-    return UserService()
+    @property
+    def domain(self) -> str:
+        return self.value.split('@')[1]
+
+    def __str__(self) -> str:
+        return self.value
 ```
 
-### 📦 Barrel Export Pattern
+**Key Characteristics:**
+- Frozen dataclasses (immutable)
+- Self-validating in `__post_init__`
+- Custom equality based on value
+- No external dependencies
 
-All modules use `__init__.py` files for clean imports and better organization:
+### 2. Entities
+
+Objects with identity and lifecycle:
 
 ```python
-# app/internal/services/__init__.py
-from .system import SystemService
-from .user import UserService, get_user_service
+# app/core/domain/entities/user.py
+class User:
+    def __init__(
+        self,
+        id: UserId,
+        email: Email,
+        username: Username,
+        password_hash: str,
+        full_name: str | None = None,
+        is_active: bool = True,
+    ):
+        self.id = id
+        self.email = email
+        self.username = username
+        self.password_hash = password_hash
+        self.full_name = full_name
+        self.is_active = is_active
+        # Audit fields from BaseEntity
+        self.created_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(timezone.utc)
 
-__all__ = ["SystemService", "UserService", "get_user_service"]
+    def deactivate(self) -> None:
+        self.is_active = False
+        self.updated_at = datetime.now(timezone.utc)
 
-# Usage in other files
-from app.internal.services import UserService, get_user_service
+    def update_email(self, new_email: Email) -> None:
+        self.email = new_email
+        self.updated_at = datetime.now(timezone.utc)
 ```
 
-### 🚀 Centralized API Versioning
+### 3. Aggregates
 
-V1 router centralizes prefix management:
+Consistency boundaries that manage entities and publish domain events:
 
 ```python
-# app/routers/v1/__init__.py
-from fastapi import APIRouter
-from app.routers.v1 import user
+# app/core/domain/aggregates/user.py
+class UserAggregate:
+    def __init__(self, user: User):
+        self._user = user
+        self._events: list[BaseDomainEvent] = []
 
-v1_router = APIRouter(prefix="/v1")  # Centralized prefix
-v1_router.include_router(user.router)
+    @classmethod
+    def create(
+        cls,
+        email: Email,
+        username: Username,
+        password_hash: str,
+        full_name: str | None = None,
+    ) -> "UserAggregate":
+        user = User(
+            id=UserId.generate(),
+            email=email,
+            username=username,
+            password_hash=password_hash,
+            full_name=full_name,
+        )
+        aggregate = cls(user)
+        aggregate._events.append(UserCreated(
+            user_id=str(user.id),
+            email=str(email),
+            username=str(username),
+        ))
+        return aggregate
 
-# app/main.py
-app.include_router(v1_router)  # No prefix needed here
+    @classmethod
+    def reconstitute(cls, user: User) -> "UserAggregate":
+        """Restore aggregate from repository (no events)."""
+        return cls(user)
+
+    def update_email(self, new_email: Email) -> None:
+        old_email = str(self._user.email)
+        self._user.update_email(new_email)
+        self._events.append(UserEmailUpdated(
+            user_id=str(self._user.id),
+            old_email=old_email,
+            new_email=str(new_email),
+        ))
+
+    @property
+    def events(self) -> list[BaseDomainEvent]:
+        return self._events.copy()
+
+    def clear_events(self) -> None:
+        self._events.clear()
 ```
 
-### 📝 Global Logging Configuration
+### 4. Domain Events
 
-Centralized logging with datetime formatting:
+Record what happened in the domain:
 
 ```python
-# app/configs/logging.py
-def get_log_config(log_level: str = "INFO") -> dict[str, Any]:
-    return {
-        "formatters": {
-            "default": {
-                "format": "[%(asctime)s] %(name)s - %(levelname)s - %(message)s",
-                "datefmt": "%Y-%m-%d %H:%M:%S",
-            }
+# app/core/domain/events/user_events.py
+@dataclass(frozen=True)
+class UserCreated(BaseDomainEvent):
+    user_id: str
+    email: str
+    username: str
+
+    def _payload(self) -> dict:
+        return {
+            "user_id": self.user_id,
+            "email": self.email,
+            "username": self.username,
         }
-        # ... comprehensive logging configuration
-    }
 
-# Usage anywhere in the application
-import logging
-logger = logging.getLogger(__name__)  # Automatically gets datetime formatting
+@dataclass(frozen=True)
+class UserEmailUpdated(BaseDomainEvent):
+    user_id: str
+    old_email: str
+    new_email: str
 ```
 
-### 🏗️ Repository Pattern
+### 5. Repository Interfaces
 
-Clean separation of data access logic:
+Protocol-based interfaces for data access:
 
 ```python
-class UserRepository:
-    async def create(self, user: User) -> User:
-        return await user.save()
+# app/core/domain/repositories/user.py
+from typing import Protocol
 
-    async def get_by_id(self, user_id: PydanticObjectId) -> User | None:
-        return await User.get(user_id)
+class IUserWriteRepository(Protocol):
+    async def save(self, aggregate: UserAggregate) -> None: ...
+    async def delete(self, aggregate: UserAggregate) -> None: ...
+    async def exists_by_email(self, email: Email) -> bool: ...
+    async def exists_by_username(self, username: Username) -> bool: ...
 
-    async def email_exists(self, email: str, exclude_user_id: PydanticObjectId | None = None) -> bool:
-        # Implementation with proper query optimization
+class IUserReadRepository(Protocol):
+    async def get_by_id(self, user_id: UserId) -> UserAggregate | None: ...
+    async def get_by_email(self, email: Email) -> UserAggregate | None: ...
+    async def list_all(self, skip: int, limit: int) -> list[UserAggregate]: ...
+    async def count(self) -> int: ...
 ```
 
-## Data Flow Architecture
+### 6. Domain Services
 
-### Request Flow
-
-```
-1. HTTP Request → FastAPI Router
-2. Router → Middleware (logging, security headers)
-3. Router → Dependency Injection (get_user_service)
-4. Router → Service Method (business logic)
-5. Service → Repository (data access)
-6. Repository → MongoDB (via Beanie ODM)
-7. Response ← Standardized APIResponse format
-```
-
-### Example Request Flow
+Cross-entity business logic:
 
 ```python
-# 1. Router receives request
-@router.post("/", status_code=status.HTTP_201_CREATED)
-async def create_user(
-    user_data: UserCreate,
-    user_service: UserService = Depends(get_user_service)  # 2. DI
-) -> JSONResponse:
-    user = await user_service.create_user(user_data)  # 3. Service
-    return APIResponse.success_response(data=user)    # 4. Response
+# app/core/domain/services/user_service.py
+class UserDomainService:
+    def __init__(self, repository: IUserRepository):
+        self._repository = repository
 
-# 2. Service handles business logic
-async def create_user(self, user_data: UserCreate) -> UserResponse:
-    # Business validation
-    if await self.repository.email_exists(user_data.email):
-        raise UserAlreadyExists("email", user_data.email)
-
-    # 3. Repository handles data access
-    created_user = await self.repository.create(user)
-    return UserResponse(**created_user.model_dump())
+    async def validate_new_user(self, email: Email, username: Username) -> None:
+        if await self._repository.exists_by_email(email):
+            raise UserAlreadyExists("email", str(email))
+        if await self._repository.exists_by_username(username):
+            raise UserAlreadyExists("username", str(username))
 ```
 
-## Design Patterns Used
+## CQRS Pattern
 
-### 1. Singleton Pattern
-- **Services**: Ensure single instance per application lifecycle
-- **Configuration**: Cached configuration objects with `@lru_cache()`
+### Command Side (Write Path)
 
-### 2. Repository Pattern
-- **Data Access**: Abstract database operations from business logic
-- **Testing**: Easy mocking of data layer
-
-### 3. Dependency Injection
-- **FastAPI Native**: Using `Depends()` for clean dependency management
-- **Service Layer**: Singleton services with injection support
-
-### 4. Factory Pattern
-- **Exception Handlers**: Creating appropriate HTTP responses from domain exceptions
-- **DTOs**: Converting between domain models and API contracts
-
-### 5. Strategy Pattern
-- **Logging**: Different formatters for different log types
-- **Configuration**: Environment-specific configurations
-
-## Database Design
-
-### BaseEntity Pattern
-
-All models inherit from `BaseEntity` providing:
-
-```python
-class BaseEntity(Document):
-    id: PydanticObjectId = Field(default_factory=PydanticObjectId)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    created_by: UUID | None = None
-    updated_by: UUID | None = None
-    deleted_at: datetime | None = None
-    deleted_by: UUID | None = None
-
-    def soft_delete(self, deleted_by: UUID | None = None):
-        self.deleted_at = datetime.now(timezone.utc)
-        self.deleted_by = deleted_by
+```
+HTTP Request → Controller → Command Handler → Aggregate → Write Repository → Database
+                                    ↓
+                            Domain Events → Event Bus → Event Handlers → Audit Log
 ```
 
-### Audit Trail Features
-
-- **Creation Tracking**: Who and when created
-- **Modification Tracking**: Who and when last modified
-- **Soft Deletion**: Preserves data for audit purposes
-- **Timezone Awareness**: UTC timestamps for global applications
-
-## Error Handling Architecture
-
-### Domain Exception Hierarchy
+**Command Example:**
 
 ```python
-# Base exceptions
-class DomainException(Exception): pass
-class ApplicationException(DomainException): pass
-class InfrastructureException(DomainException): pass
+# app/core/application/commands/user/create_user.py
+@dataclass(frozen=True)
+class CreateUserCommand:
+    email: str
+    username: str
+    password: str
+    full_name: str | None = None
 
-# Specific domain exceptions
-class UserException(DomainException): pass
-class UserNotFound(UserException): pass
-class UserAlreadyExists(UserException): pass
+# app/core/application/commands/handlers/user_handlers.py
+class CreateUserHandler:
+    def __init__(
+        self,
+        repository: IUserRepository,
+        domain_service: UserDomainService,
+        event_bus: IEventBus,
+        password_hasher: IPasswordHasher,
+    ):
+        self._repository = repository
+        self._domain_service = domain_service
+        self._event_bus = event_bus
+        self._password_hasher = password_hasher
+
+    async def handle(self, command: CreateUserCommand) -> str:
+        # 1. Create value objects (validates format)
+        email = Email(command.email)
+        username = Username(command.username)
+
+        # 2. Validate business rules
+        await self._domain_service.validate_new_user(email, username)
+
+        # 3. Hash password
+        password_hash = self._password_hasher.hash(command.password)
+
+        # 4. Create aggregate (raises UserCreated event)
+        aggregate = UserAggregate.create(
+            email=email,
+            username=username,
+            password_hash=password_hash,
+            full_name=command.full_name,
+        )
+
+        # 5. Persist
+        await self._repository.save(aggregate)
+
+        # 6. Publish domain events
+        for event in aggregate.events:
+            await self._event_bus.publish(event)
+
+        return str(aggregate.user.id)
 ```
 
-### Exception Flow
+### Query Side (Read Path)
 
-1. **Services**: Raise domain exceptions (never HTTP exceptions)
-2. **Handlers**: Convert domain exceptions to HTTP responses
-3. **API Layer**: Returns standardized error format
-
-## Environment Configuration
-
-### Pydantic Settings Pattern
-
-```python
-class AppConfig(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        case_sensitive=False,
-        extra="ignore"
-    )
-
-    # Application settings with defaults
-    name: str = Field(default="backend-fastapi-app")
-    environment: Literal["development", "staging", "production"] = "development"
-
-    # Database settings
-    mongodb_url: str = Field(description="MongoDB connection string")
+```
+HTTP Request → Controller → Query Handler → Read Model Repository → Database
 ```
 
-## Testing Architecture
-
-### Unit Tests with Mocking
+**Query Example:**
 
 ```python
-class TestUserServiceBusiness:
-    @pytest.fixture
-    def user_service(self):
-        service = UserService()
-        service.repository = AsyncMock()  # Mock repository
-        return service
+# app/core/application/queries/user/get_user.py
+@dataclass(frozen=True)
+class GetUserByIdQuery:
+    user_id: str
 
-    async def test_create_user_success(self, user_service, sample_user_create):
-        # Arrange
-        user_service.repository.email_exists.return_value = False
+# app/core/application/queries/handlers/user_handlers.py
+class GetUserByIdHandler:
+    def __init__(self, repository: IUserReadModelRepository):
+        self._repository = repository
 
-        # Act
-        result = await user_service.create_user(sample_user_create)
+    async def handle(self, query: GetUserByIdQuery) -> UserReadModel | None:
+        return await self._repository.get_by_id(query.user_id)
+```
 
-        # Assert
-        assert isinstance(result, UserResponse)
+### Read Models
+
+Optimized DTOs for query operations:
+
+```python
+# app/core/application/read_models/user.py
+@dataclass
+class UserReadModel:
+    id: str
+    email: str
+    username: str
+    full_name: str | None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "UserReadModel":
+        return cls(**data)
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+```
+
+## Event-Driven Architecture
+
+### Event Bus
+
+In-memory pub/sub for domain events:
+
+```python
+# app/infrastructure/messaging/event_bus.py
+class InMemoryEventBus(IEventBus):
+    def __init__(self):
+        self._subscribers: dict[type, list[Callable]] = {}
+
+    def subscribe(self, event_type: type, handler: Callable) -> None:
+        if event_type not in self._subscribers:
+            self._subscribers[event_type] = []
+        self._subscribers[event_type].append(handler)
+
+    async def publish(self, event: BaseDomainEvent) -> None:
+        handlers = self._subscribers.get(type(event), [])
+        for handler in handlers:
+            try:
+                if asyncio.iscoroutinefunction(handler):
+                    await handler(event)
+                else:
+                    handler(event)
+            except Exception as e:
+                logger.error(f"Event handler failed: {e}")
+```
+
+### Event Handlers
+
+React to domain events:
+
+```python
+# app/infrastructure/event_handlers/user_event_handlers.py
+class UserEventHandler:
+    def __init__(self, log_handler: CreateLogHandler):
+        self._log_handler = log_handler
+
+    async def on_user_created(self, event: UserCreated) -> None:
+        command = CreateLogCommand(
+            action="USER_CREATED",
+            user_id=event.user_id,
+            metadata={"email": event.email, "username": event.username},
+        )
+        await self._log_handler.handle(command)
+```
+
+## Dependency Injection
+
+### Setter Functions
+
+Runtime configuration for dependencies:
+
+```python
+# app/presentation/dependencies/repositories.py
+_user_repository: IUserRepository | None = None
+
+def set_user_repository(repo: IUserRepository) -> None:
+    global _user_repository
+    _user_repository = repo
+
+def get_user_repository() -> IUserRepository:
+    if _user_repository is None:
+        raise RuntimeError("User repository not initialized")
+    return _user_repository
+```
+
+### Handler Factories
+
+FastAPI dependency injection:
+
+```python
+# app/presentation/dependencies/handlers.py
+def get_create_user_handler(
+    repository: IUserRepository = Depends(get_user_repository),
+    domain_service: UserDomainService = Depends(get_user_domain_service),
+    event_bus: IEventBus = Depends(get_event_bus),
+    password_hasher: IPasswordHasher = Depends(get_password_hasher),
+) -> CreateUserHandler:
+    return CreateUserHandler(repository, domain_service, event_bus, password_hasher)
+
+# Type alias for cleaner endpoint signatures
+CreateUserHandlerDep = Annotated[CreateUserHandler, Depends(get_create_user_handler)]
+```
+
+### Lifespan Setup
+
+Initialize dependencies at startup:
+
+```python
+# app/infrastructure/setup.py
+@asynccontextmanager
+async def clean_architecture_lifespan(app: FastAPI):
+    # Startup
+    await postgres_manager.connect()
+    await mongodb_manager.connect()
+
+    session = await postgres_manager.get_session()
+    setup_dependencies(session)
+
+    yield
+
+    # Shutdown
+    await postgres_manager.disconnect()
+    await mongodb_manager.disconnect()
+
+def setup_dependencies(session: AsyncSession) -> None:
+    # Create repositories
+    user_write_repo = PostgresUserWriteRepository(session)
+    user_read_repo = PostgresUserReadRepository(session)
+    combined_repo = CombinedUserRepository(user_write_repo, user_read_repo)
+
+    # Create infrastructure services
+    event_bus = InMemoryEventBus()
+    password_hasher = SimplePasswordHasher()
+
+    # Create event handlers and subscribe
+    log_handler = CreateLogHandler(...)
+    user_event_handler = UserEventHandler(log_handler)
+    event_bus.subscribe(UserCreated, user_event_handler.on_user_created)
+    event_bus.subscribe(UserUpdated, user_event_handler.on_user_updated)
+
+    # Set dependencies
+    set_user_repository(combined_repo)
+    set_event_bus(event_bus)
+    set_password_hasher(password_hasher)
+```
+
+## Data Flow Examples
+
+### Creating a User (Complete Flow)
+
+```
+1. HTTP POST /v1/users/
+   ↓
+2. Presentation: create_user() receives UserCreateRequest
+   ↓
+3. Create CreateUserCommand with request data
+   ↓
+4. FastAPI injects CreateUserHandler (via dependency)
+   ↓
+5. Application: CreateUserHandler.handle(command)
+   ↓
+6. Create Email, Username value objects (validate format)
+   ↓
+7. Call UserDomainService.validate_new_user() (check uniqueness)
+   ↓
+8. Hash password via SimplePasswordHasher
+   ↓
+9. Domain: UserAggregate.create() creates entity with UserCreated event
+   ↓
+10. Infrastructure: PostgresUserWriteRepository.save(aggregate)
+    - Convert aggregate to SQLModel
+    - INSERT into PostgreSQL
+    ↓
+11. Application: Publish all events via InMemoryEventBus
+    ↓
+12. Infrastructure: UserEventHandler receives UserCreated event
+    - Create CreateLogCommand
+    - Save log to MongoDB
+    ↓
+13. Return 201 Created with user_id
+```
+
+### Querying a User
+
+```
+1. HTTP GET /v1/users/{id}
+   ↓
+2. Presentation: get_user() receives user_id
+   ↓
+3. Create GetUserByIdQuery(user_id)
+   ↓
+4. FastAPI injects GetUserByIdHandler
+   ↓
+5. Application: GetUserByIdHandler.handle(query)
+   ↓
+6. Infrastructure: PostgresUserReadModelRepository.get_by_id()
+    - SELECT from PostgreSQL
+    - Convert to UserReadModel
+   ↓
+7. Return UserReadModel
+   ↓
+8. Presentation: Serialize to JSON response
+```
+
+## Error Handling
+
+### Domain Exceptions
+
+```python
+# app/core/domain/exceptions/user.py
+class UserNotFound(DomainException):
+    def __init__(self, user_id: str | None = None, email: str | None = None):
+        super().__init__(
+            error_code=ErrorCode.USER_NOT_FOUND,
+            message=f"User not found",
+            context={"user_id": user_id, "email": email},
+        )
+
+class UserAlreadyExists(DomainException):
+    def __init__(self, field_name: str, field_value: str):
+        super().__init__(
+            error_code=ErrorCode.USER_ALREADY_EXISTS,
+            message=f"User with {field_name} '{field_value}' already exists",
+            context={"field": field_name, "value": field_value},
+        )
+```
+
+### Exception Handlers
+
+Convert domain exceptions to HTTP responses:
+
+```python
+# app/infrastructure/web/exception_handlers.py
+def register_exception_handlers(app: FastAPI) -> None:
+    @app.exception_handler(UserNotFound)
+    async def user_not_found_handler(request: Request, exc: UserNotFound):
+        return JSONResponse(
+            status_code=404,
+            content={
+                "success": False,
+                "message": exc.message,
+                "error_code": exc.error_code.value,
+                "context": exc.context,
+            },
+        )
+
+    @app.exception_handler(UserAlreadyExists)
+    async def user_already_exists_handler(request: Request, exc: UserAlreadyExists):
+        return JSONResponse(
+            status_code=409,
+            content={
+                "success": False,
+                "message": exc.message,
+                "error_code": exc.error_code.value,
+                "context": exc.context,
+            },
+        )
+```
+
+## Mapper Pattern
+
+Convert between domain entities and persistence models:
+
+```python
+# app/infrastructure/persistence/postgresql/mappers/user.py
+class UserMapper:
+    @staticmethod
+    def to_model(aggregate: UserAggregate) -> UserModel:
+        user = aggregate.user
+        return UserModel(
+            id=user.id.value,
+            email=str(user.email),
+            username=str(user.username),
+            password_hash=user.password_hash,
+            full_name=user.full_name,
+            is_active=user.is_active,
+            created_at=user.created_at,
+            updated_at=user.updated_at,
+        )
+
+    @staticmethod
+    def to_aggregate(model: UserModel) -> UserAggregate:
+        user = User(
+            id=UserId(model.id),
+            email=Email(model.email),
+            username=Username(model.username),
+            password_hash=model.password_hash,
+            full_name=model.full_name,
+            is_active=model.is_active,
+        )
+        return UserAggregate.reconstitute(user)
+```
+
+## Testing Strategy
+
+### Unit Tests
+
+Test domain logic in isolation:
+
+```python
+# tests/unit/domain/test_aggregates.py
+class TestUserAggregate:
+    def test_create_raises_user_created_event(self):
+        aggregate = UserAggregate.create(
+            email=Email("test@example.com"),
+            username=Username("testuser"),
+            password_hash="hashed",
+        )
+
+        assert len(aggregate.events) == 1
+        assert isinstance(aggregate.events[0], UserCreated)
 ```
 
 ### Integration Tests
 
-- **E2E Tests**: Full application stack testing
-- **Database Tests**: Real MongoDB integration
-- **API Tests**: HTTP endpoint testing
-
-## Performance Considerations
-
-### Async Operations
-
-- **Full Async Stack**: FastAPI + Motor + Beanie
-- **Connection Pooling**: MongoDB connection management
-- **Non-blocking I/O**: Efficient resource utilization
-
-### Caching Strategy
-
-- **Configuration Caching**: `@lru_cache()` for settings
-- **Service Singletons**: Reduce object creation overhead
-- **Query Optimization**: Repository pattern enables query caching
-
-### Monitoring and Observability
-
-- **Request Logging**: Detailed request/response tracking
-- **Performance Metrics**: Response time middleware
-- **Health Checks**: Application and database monitoring
-
-## Security Architecture
-
-### Authentication & Authorization (Ready for Implementation)
-
-- **JWT Token Support**: Ready for authentication implementation
-- **Role-based Access**: Prepared user model structure
-- **API Key Support**: Configurable authentication strategies
-
-### Data Protection
-
-- **Input Validation**: Pydantic models prevent injection
-- **SQL Injection Prevention**: NoSQL with ODM protection
-- **UUID-based IDs**: Prevent enumeration attacks
-
-### Security Headers
-
-Automatic security headers via middleware:
+Test with real databases via testcontainers:
 
 ```python
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        response = await call_next(request)
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        return response
+# tests/integration/postgresql/test_user_repository.py
+async def test_save_and_retrieve_user(postgres_session):
+    repository = PostgresUserRepository(postgres_session)
+    aggregate = UserAggregate.create(...)
+
+    await repository.save(aggregate)
+    retrieved = await repository.get_by_id(aggregate.user.id)
+
+    assert retrieved is not None
+    assert retrieved.user.email == aggregate.user.email
 ```
 
-## Deployment Architecture
+### E2E Tests
 
-### Docker-First Approach
+Test full API flows:
 
-- **Development**: Docker Compose with hot reload
-- **Production**: Multi-stage Docker builds
-- **Orchestration**: Kubernetes-ready with health checks
+```python
+# tests/e2e/test_user_api.py
+async def test_create_and_get_user(test_client):
+    # Create
+    response = await test_client.post("/v1/users/", json={...})
+    assert response.status_code == 201
+    user_id = response.json()["data"]["id"]
 
-### Environment Management
+    # Get
+    response = await test_client.get(f"/v1/users/{user_id}")
+    assert response.status_code == 200
+```
 
-- **Configuration**: Environment-specific settings
-- **Secrets**: External secret management support
-- **Scaling**: Horizontal scaling with load balancers
+## Key Architectural Decisions
 
-## Future Architecture Considerations
+### 1. Dual Database Strategy
 
-### Planned Enhancements
+- **PostgreSQL**: User entity (ACID, relational, structured)
+- **MongoDB**: Log entity (audit trail, flexible schema)
+- Synchronized via domain events
 
-- **Event Sourcing**: For complex domain events
-- **CQRS**: Separate read/write models for complex queries
-- **Microservices**: Service decomposition guidelines
-- **API Gateway**: External API management
-- **Message Queues**: Async task processing
+### 2. Protocol-based Interfaces
 
-This architecture provides a solid foundation for building scalable, maintainable FastAPI applications with modern Python practices and clean architecture principles.
+- No inheritance required
+- Structural typing for loose coupling
+- Easy to swap implementations
+
+### 3. Separate Read/Write Repositories
+
+- Optimized for different access patterns
+- Read models can be cached independently
+- Write models ensure consistency
+
+### 4. In-Memory Event Bus
+
+- Simple and synchronous for now
+- Can be replaced with message queue later
+- Decouples business operations from side effects
+
+### 5. Soft Deletion
+
+- No hard deletes (data preservation)
+- Audit trail maintained
+- Tracked via `deleted_at`, `deleted_by`
+
+This architecture provides a solid foundation for building scalable, maintainable applications following enterprise patterns and clean code principles.

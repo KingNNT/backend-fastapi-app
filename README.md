@@ -1,8 +1,8 @@
 # FastAPI Backend Application
 
-A modern, production-ready FastAPI backend application with MongoDB integration, following clean architecture principles and Docker-first development approach.
+A modern, production-ready FastAPI backend application following Clean Architecture with Domain-Driven Design (DDD) and CQRS patterns. Features dual database support (PostgreSQL + MongoDB) and a Docker-first development approach.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -22,89 +22,108 @@ make dev
 - **API Documentation**: http://localhost:8080/docs
 - **Health Check**: http://localhost:8080/health-check
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 - **Framework**: FastAPI with async support
 - **Databases**:
-  - **PostgreSQL** with SQLModel and Alembic for migrations (SQL)
-  - **MongoDB** with Beanie ODM and Motor driver (NoSQL)
+  - **PostgreSQL** with SQLModel and Alembic for migrations
+  - **MongoDB** with Beanie ODM and Motor driver
 - **Language**: Python 3.12+
+- **Architecture**: Clean Architecture + DDD + CQRS
 - **Containerization**: Docker & Docker Compose
-- **Testing**: pytest with async support and comprehensive mocking
+- **Testing**: pytest with async support, testcontainers
 - **Code Quality**: Ruff (formatting & linting), Pyright (type checking)
-- **Architecture**: Clean Architecture with dependency injection
 
-## 🏗️ Architecture
+## Architecture
 
-This application follows clean architecture with clear separation of concerns and modern design patterns:
+This application follows Clean Architecture with Domain-Driven Design tactical patterns and full CQRS:
 
 ```
-┌─────────────────────────────────────┐
-│        API Layer (FastAPI)          │  ← Routers, middleware, dependencies
-├─────────────────────────────────────┤
-│     Business Logic (Services)       │  ← Singleton services with DI
-├─────────────────────────────────────┤
-│     Data Access (Repositories)      │  ← Repository pattern for data access
-├─────────────────────────────────────┤
-│     Databases (Dual Support)        │  ← PostgreSQL (SQLModel) + MongoDB (Beanie)
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│              Presentation Layer                      │
+│     (FastAPI Controllers, DTOs, Dependencies)        │
+├─────────────────────────────────────────────────────┤
+│              Application Layer                       │
+│   (Commands, Queries, Handlers, Read Models)         │
+├─────────────────────────────────────────────────────┤
+│                Domain Layer                          │
+│ (Aggregates, Entities, Value Objects, Domain Events) │
+├─────────────────────────────────────────────────────┤
+│             Infrastructure Layer                     │
+│   (Repositories, Event Bus, Database Connections)    │
+└─────────────────────────────────────────────────────┘
 ```
 
 ### Key Architectural Features
 
-- **🔄 Singleton Pattern**: Services use singleton pattern with proper dependency injection
-- **📦 Barrel Exports**: Clean imports using `__init__.py` files for better module organization
-- **🏗️ Repository Pattern**: Separation of data access logic from business logic
-- **📝 Global Logging**: Centralized logging configuration with datetime formatting
-- **🔌 Middleware Organization**: Structured middleware in dedicated `dependencies/` folder
-- **🚀 API Versioning**: Centralized v1 router architecture with prefix management
+- **Domain-Driven Design**: Aggregates, Entities, Value Objects, Domain Events
+- **CQRS Pattern**: Separate command (write) and query (read) paths
+- **Event-Driven**: Domain events trigger side effects (audit logs, notifications)
+- **Repository Pattern**: Abstract data access with Protocol-based interfaces
+- **Dependency Injection**: FastAPI Depends with setter functions for runtime config
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 app/
-├── configs/         # Configuration modules (app, database, logging, version)
-│   └── __init__.py  # Barrel exports for all configs
-├── dependencies/    # Dependency injection and middleware
-│   ├── middleware.py    # Request logging and security middleware
-│   └── __init__.py      # Exports for dependency injection
-├── internal/        # Domain/business logic layer
-│   ├── dtos/            # Data Transfer Objects with barrel exports
-│   ├── exceptions/      # Domain exceptions organized by type
-│   ├── models/          # MongoDB models with BaseEntity
-│   ├── repositories/    # Data access layer with repository pattern
-│   ├── services/        # Business logic with singleton pattern
-│   └── __init__.py      # Internal module exports
-├── routers/         # API endpoints with version organization
-│   ├── v1/              # Version 1 API with centralized routing
-│   ├── system.py        # System endpoints (health, version)
-│   └── __init__.py      # Router exports
-├── utils/           # Utility functions and helpers
-│   ├── response.py      # Standardized API response utilities
-│   └── __init__.py      # Utility exports
-├── tests/           # Comprehensive test suite
-│   ├── unit/            # Unit tests with mocking
-│   ├── e2e/             # End-to-end integration tests
-│   └── conftest.py      # Shared test configuration
-└── main.py          # Application entry point with global configs
+├── core/                    # Inner layers (no framework dependencies)
+│   ├── domain/              # Layer 1: Domain (DDD patterns)
+│   │   ├── aggregates/      # Aggregate roots (UserAggregate, LogAggregate)
+│   │   ├── entities/        # Entities (User, Log)
+│   │   ├── value_objects/   # Value objects (Email, Username, UserId)
+│   │   ├── events/          # Domain events (UserCreated, UserUpdated, etc.)
+│   │   ├── specifications/  # Business rules
+│   │   ├── services/        # Domain services
+│   │   ├── repositories/    # Repository interfaces (Protocols)
+│   │   └── exceptions/      # Domain exceptions
+│   │
+│   └── application/         # Layer 2: Application (CQRS)
+│       ├── commands/        # Write side (CreateUser, UpdateUser, etc.)
+│       ├── queries/         # Read side (GetUser, ListUsers, etc.)
+│       ├── read_models/     # Optimized read models
+│       └── interfaces/      # Application interfaces
+│
+├── presentation/            # Layer 3: Presentation
+│   ├── api/                 # REST API controllers
+│   │   ├── v1/              # API version 1
+│   │   └── system.py        # Health & version endpoints
+│   ├── dependencies/        # FastAPI dependency injection
+│   └── dtos/                # Data Transfer Objects
+│
+├── infrastructure/          # Layer 4: Infrastructure
+│   ├── configs/             # Configuration (app, logging, version)
+│   ├── persistence/         # Database implementations
+│   │   ├── postgresql/      # PostgreSQL (User entity)
+│   │   └── mongodb/         # MongoDB (Log entity)
+│   ├── messaging/           # Event bus, password hasher
+│   ├── event_handlers/      # Domain event handlers
+│   ├── web/                 # Middleware, exception handlers
+│   └── setup.py             # Dependency injection setup
+│
+└── main.py                  # Application entry point
+
+tests/                       # Test suite (outside app/)
+├── unit/                    # Unit tests
+├── integration/             # Integration tests (testcontainers)
+├── e2e/                     # End-to-end tests
+└── conftest.py              # Shared fixtures
 ```
 
-## 🔧 Development
+## Development
 
 ### Essential Commands
 
 ```bash
 # Development workflow
 make dev             # Start development environment
-make test            # Run tests
+make test            # Run unit tests
+make test-e2e        # Run E2E tests
 make fix             # Format and lint code
 make ci              # Run full CI pipeline
 
 # Database management
 make db-up           # Start both databases
 make db-reset        # Reset all database data
-make shell-mongo     # Access MongoDB shell
-make shell-postgres  # Access PostgreSQL shell
 make migrate-up      # Apply PostgreSQL migrations
 make seed            # Seed PostgreSQL with sample data
 
@@ -132,75 +151,65 @@ make health          # Check application health
 
 Full API documentation available at http://localhost:8080/docs
 
-## 📚 Detailed Documentation
+## Documentation
 
 For comprehensive guides, see the `docs/` directory:
 
-- **[Architecture](docs/architecture.md)** - Detailed architecture, patterns, and design decisions
-- **[Development](docs/development.md)** - Complete development workflow and Docker commands
+- **[Architecture](docs/architecture.md)** - Clean Architecture, DDD, and CQRS patterns
+- **[Development](docs/development.md)** - Development workflow and Docker commands
 - **[API Documentation](docs/api.md)** - Full API reference with examples
-- **[Database](docs/database.md)** - MongoDB schema, queries, and optimization
-- **[Testing](docs/testing.md)** - Testing strategies, patterns, and best practices
-- **[Deployment](docs/deployment.md)** - Production deployment guides and monitoring
+- **[Database](docs/database.md)** - Dual database strategy (PostgreSQL + MongoDB)
+- **[Testing](docs/testing.md)** - Testing strategies and patterns
+- **[Deployment](docs/deployment.md)** - Production deployment guides
 
-## 🧪 Features
+## Features
 
 ### Core Features
-- ✅ **Clean Architecture** with dependency injection and singleton services
-- ✅ **Dual Database Support**:
-  - PostgreSQL (SQLModel + Alembic migrations) for relational data
-  - MongoDB (Beanie ODM + Motor) for document storage
-- ✅ **Unified Lifespan Management** for both databases
-- ✅ **API Versioning** with centralized `/v1/` prefix management
-- ✅ **Comprehensive Testing** (unit tests with mocks and E2E tests)
-- ✅ **Docker-First Development** (no local Python needed)
-- ✅ **Modular Makefile** organized by functionality
+- Clean Architecture with clear layer separation
+- Domain-Driven Design tactical patterns
+- CQRS (Command Query Responsibility Segregation)
+- Dual Database Support (PostgreSQL + MongoDB)
+- Event-Driven Architecture with domain events
+- API Versioning with centralized prefix management
+- Comprehensive Testing (unit, integration, E2E)
+- Docker-First Development
 
 ### Advanced Features
-- ✅ **Audit Trail** with soft deletion and automatic tracking
-- ✅ **Global Logging** with datetime formatting and structured output
-- ✅ **Barrel Exports** for clean module imports and organization
-- ✅ **Middleware Architecture** with request logging and security headers
-- ✅ **Exception Handling** with domain-specific exception hierarchy
-- ✅ **Repository Pattern** for clean data access abstraction
+- Audit Trail with soft deletion
+- Global Logging with datetime formatting
+- Domain Exception Handling
+- Standardized API Response Format
+- Repository Pattern with Protocol interfaces
+- Mapper Pattern for entity/model conversion
 
 ### Quality & DevOps
-- ✅ **Code Quality** with Ruff formatting/linting and Pyright type checking
-- ✅ **Health Checks** and monitoring endpoints
-- ✅ **Environment Configuration** with Pydantic Settings
-- ✅ **Pre-commit Hooks** for automated code quality
-- ✅ **Make-based Workflow** for consistent development experience
+- Code Quality with Ruff and Pyright
+- Health Checks and monitoring
+- Environment Configuration with Pydantic Settings
+- Make-based Workflow
 
-## 🔒 Security & Best Practices
+## Security & Best Practices
 
 - **Soft Deletion**: Records preserved for audit trail
-- **Audit Trail**: All changes tracked automatically with timestamps and user tracking
-- **Input Validation**: Pydantic models ensure data integrity and type safety
-- **UUID-based IDs**: Prevents enumeration attacks and supports distributed systems
-- **Environment Variables**: Secure configuration management with Pydantic Settings
-- **Security Headers**: Automatic security headers via middleware
-- **Request Logging**: Comprehensive request/response logging with timing
+- **Audit Trail**: All changes tracked with timestamps
+- **Input Validation**: Pydantic models and Value Objects
+- **UUID-based IDs**: Prevents enumeration attacks
+- **Domain Exceptions**: Clean error handling without HTTP leakage
+- **Security Headers**: Automatic headers via middleware
 
-## 🚀 Production Ready
+## Production Ready
 
 ### Deployment Options
-- **Docker Compose**: Single-server deployment for small to medium applications
-- **Kubernetes**: Scalable production deployment for enterprise applications
-- **Health Checks**: Application and database monitoring with `/health-check` endpoint
+- **Docker Compose**: Single-server deployment
+- **Kubernetes**: Scalable production deployment
+- **Health Checks**: Application and database monitoring
 
 ### Performance Features
-- **Async Operations**: Full async/await support with connection pooling
-- **Connection Pooling**: MongoDB connection pooling via Motor
-- **Lazy Loading**: Efficient data loading patterns
-- **Logging**: Structured logging with datetime formatting for production monitoring
+- **Async Operations**: Full async/await support
+- **Connection Pooling**: Both PostgreSQL and MongoDB
+- **Optimized Read Models**: CQRS for read performance
 
-### Monitoring & Observability
-- **Health Endpoints**: `/health-check` and `/version` for monitoring
-- **Request Logging**: Detailed request/response logging with timing
-- **Error Tracking**: Comprehensive exception handling and logging
-- **Performance Metrics**: Response time tracking via middleware
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -209,52 +218,24 @@ For comprehensive guides, see the `docs/` directory:
 
 ### Code Standards
 
-- Follow clean architecture principles with proper separation of concerns
-- Use singleton pattern for services with dependency injection
-- Implement repository pattern for data access
-- Write comprehensive tests with proper mocking
-- Use barrel exports for clean module organization
-- Follow the established logging patterns
+- Follow Clean Architecture principles
+- Use DDD patterns (Aggregates, Value Objects, Domain Events)
+- Implement CQRS for commands and queries
+- Write comprehensive tests
 - Use type hints and proper documentation
 - Run `make fix` before committing
 
-### Development Guidelines
-
-- **Services**: Use singleton pattern with dependency injection
-- **Imports**: Use barrel exports from `__init__.py` files
-- **Logging**: Use `logging.getLogger(__name__)` for consistent logging
-- **Testing**: Write unit tests with mocks and E2E tests for integration
-- **API Design**: Follow RESTful principles with proper HTTP status codes
-- **Error Handling**: Use domain exceptions, not HTTP exceptions in services
-
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
 
-## 🆘 Quick Help
+## Quick Help
 
 ```bash
 make help           # Show all available commands
 make dev            # Start development (most common)
 make test           # Run tests
 make ci             # Full CI pipeline
-make health         # Check application health
-make shell          # Access container shell
 ```
 
 For detailed guides, check the [documentation](docs/) directory.
-
-## 🔥 Recent Improvements
-
-This template includes modern architectural improvements:
-
-- **Singleton Services**: Efficient service layer with proper dependency injection
-- **Barrel Exports**: Clean import structure with `__init__.py` organization
-- **Global Logging**: Centralized logging configuration with datetime formatting
-- **Middleware Organization**: Structured middleware in dedicated folder
-- **API Versioning**: Centralized v1 router architecture
-- **Exception Architecture**: Comprehensive domain exception hierarchy
-
----
-
-**Ready to build something amazing! 🚀**

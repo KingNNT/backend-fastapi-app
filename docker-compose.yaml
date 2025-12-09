@@ -1,0 +1,79 @@
+# Base Docker Compose configuration
+# This file contains common service definitions shared across environments
+#
+# Usage:
+#   Development: docker-compose up (automatically uses docker-compose.override.yaml)
+#   Production:  docker-compose -f docker-compose.yaml -f docker-compose.production.yaml up
+
+networks:
+  network_app:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  postgresql_data:
+  redis_data:
+
+x-healthcheck-defaults: &healthcheck-defaults
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 40s
+
+services:
+  # ==========================================================================
+  # MongoDB - Document Database
+  # ==========================================================================
+  mongodb:
+    image: mongo:8.2.2
+    container_name: ${APP_NAME:-backend-fastapi-app}-mongodb
+    hostname: ${APP_NAME:-backend-fastapi-app}-mongodb
+    restart: unless-stopped
+    networks:
+      - network_app
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD:-password}
+      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE:-backend_fastapi_app}
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+
+  # ==========================================================================
+  # PostgreSQL - Relational Database
+  # ==========================================================================
+  postgresql:
+    image: postgres:17-alpine
+    container_name: ${APP_NAME:-backend-fastapi-app}-postgresql
+    hostname: postgresql
+    restart: unless-stopped
+    networks:
+      - network_app
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-example}
+      POSTGRES_DB: ${POSTGRES_DB:-database_develop}
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-database_develop}"]
+      start_period: 60s
+
+  # ==========================================================================
+  # Redis - Cache & Message Broker
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: ${APP_NAME:-backend-fastapi-app}-redis
+    hostname: redis
+    restart: unless-stopped
+    networks:
+      - network_app
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD", "redis-cli", "ping"]

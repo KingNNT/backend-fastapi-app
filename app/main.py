@@ -1,19 +1,29 @@
+"""
+Application entry point with Clean Architecture.
+
+This FastAPI application follows Clean Architecture + DDD + CQRS patterns:
+- Domain Layer: Pure business logic (core/domain/)
+- Application Layer: CQRS handlers (core/application/)
+- Presentation Layer: API controllers (presentation/)
+- Infrastructure Layer: Database implementations (infrastructure/)
+"""
+
 import logging.config
+
 from fastapi import FastAPI
 
-from app.configs import (
+from app.infrastructure.configs import (
     get_app_config,
     get_app_version,
     get_log_config,
 )
-from app.dependencies import (
-    lifespan,
+from app.infrastructure.setup import clean_architecture_lifespan
+from app.infrastructure.web import (
     RequestLoggingMiddleware,
     SecurityHeadersMiddleware,
+    register_exception_handlers,
 )
-from app.internal.exceptions import register_exception_handlers
-from app.routers import system
-from app.routers.v1 import v1_router
+from app.presentation.api import api_router
 
 config = get_app_config()
 
@@ -24,15 +34,15 @@ app = FastAPI(
     title=config.name,
     version=get_app_version(),
     description=config.description,
-    lifespan=lifespan,
+    lifespan=clean_architecture_lifespan,
 )
 
-# Register exception handlers
+# Register exception handlers for domain exceptions
 register_exception_handlers(app)
 
 # Add middleware
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
-app.include_router(system.router)
-app.include_router(v1_router)
+# Include API routers
+app.include_router(api_router)

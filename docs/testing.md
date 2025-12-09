@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project implements a comprehensive testing strategy using pytest with async support, focusing on unit tests for business logic and integration tests for full application workflows.
+This project implements a comprehensive testing strategy following Clean Architecture principles. Tests are organized by layer and purpose, with clear separation between unit, integration, and end-to-end tests.
 
 ## Testing Stack
 
@@ -10,20 +10,27 @@ This project implements a comprehensive testing strategy using pytest with async
 - **Async Support**: pytest-asyncio
 - **Mocking**: unittest.mock (AsyncMock, MagicMock)
 - **Coverage**: pytest-cov
+- **Integration**: testcontainers (isolated database containers)
 - **Test Runner**: Docker-based execution
 
 ## Test Structure
 
 ```
-app/tests/
-├── unit/                           # Unit tests
-│   ├── test_user_models.py        # DTO validation tests
-│   └── test_user_service_simple.py # Service logic tests
-├── integration/                    # Integration tests (future)
-│   └── test_user_endpoints.py     # End-to-end API tests
-├── e2e/                           # End-to-end tests (future)
-│   └── test_user_workflows.py     # Complete user workflows
-└── conftest.py                    # Test configuration
+tests/                              # Test suite (outside app/)
+├── unit/                           # Unit tests (mocked dependencies)
+│   ├── domain/                     # Domain layer tests
+│   │   ├── test_aggregates.py      # Aggregate tests
+│   │   ├── test_entities.py        # Entity tests
+│   │   └── test_value_objects.py   # Value object tests
+│   └── application/                # Application layer tests
+│       ├── test_command_handlers.py # Command handler tests
+│       └── test_query_handlers.py   # Query handler tests
+├── integration/                    # Integration tests (testcontainers)
+│   ├── postgresql/                 # PostgreSQL repository tests
+│   └── mongodb/                    # MongoDB repository tests
+├── e2e/                            # End-to-end tests
+│   └── test_user_api.py            # Full API flow tests
+└── conftest.py                     # Shared test fixtures
 ```
 
 ## Running Tests
@@ -33,38 +40,37 @@ app/tests/
 All tests run inside Docker containers:
 
 ```bash
-# Run all unit tests
+# Run unit tests
 make test
 
 # Run tests with coverage
 make test-cov
 
-# Run all tests (unit + integration)
-make test-all
-
-# Run tests in watch mode
-make test-watch
-
-# Run integration tests only
+# Run integration tests (uses testcontainers)
 make test-integration
+
+# Run E2E tests (uses test databases)
+make test-e2e
+
+# Run all tests
+make test-all
 
 # Full CI pipeline
 make ci
 ```
 
-### Direct pytest Commands
-
-Access container shell first:
+### Test Database Setup
 
 ```bash
-# Access Python container
-make shell
+# Setup test databases before first E2E run
+make setup-test-db
 
-# Then run pytest commands
-poetry run pytest app/tests/unit/ -v
-poetry run pytest app/tests/unit/test_user_models.py -v
-poetry run pytest -k "test_user" -v
-poetry run pytest --cov=app --cov-report=html
+# Reset test databases
+make test-db-reset
+
+# Access test database shells
+make shell-postgres-test
+make shell-mongo-test
 ```
 
 ## Unit Testing
@@ -77,200 +83,421 @@ Unit tests focus on testing business logic in isolation:
 - **Focused**: Test one unit of functionality
 - **Deterministic**: Same input always produces same output
 
-### Service Layer Testing
+### Testing Domain Layer
 
-#### Mock Strategy
+#### Value Objects
 
 ```python
-# app/tests/unit/test_user_service_simple.py
-class TestUserServiceBusiness:
+# tests/unit/domain/test_value_objects.py
+class TestEmail:
+    def test_valid_email(self):
+        email = Email("test@example.com")
+        assert str(email) == "test@example.com"
+
+    def test_invalid_email_raises_validation_error(self):
+        with pytest.raises(ValidationError) as exc_info:
+            Email("invalid-email")
+        assert exc_info.value.field_name == "email"
+
+    def test_email_domain(self):
+        email = Email("user@example.com")
+        assert email.domain == "example.com"
+```
+
+#### Entities
+
+```python
+# tests/unit/domain/test_entities.py
+class TestUser:
+    def test_user_creation(self):
+        user = User(
+            id=UserId.generate(),
+            email=Email("test@example.com"),
+            username=Username("testuser"),
+            password_hash="hashed",
+        )
+        assert user.is_active is True
+
+    def test_user_deactivate(self):
+        user = create_test_user()
+        user.deactivate()
+        assert user.is_active is False
+
+    def test_user_soft_delete(self):
+        user = create_test_user()
+        user.soft_delete("admin")
+        assert user.is_deleted is True
+        assert user.deleted_by == "admin"
+```
+
+#### Aggregates
+
+```python
+# tests/unit/domain/test_aggregates.py
+class TestUserAggregate:
+    def test_create_raises_user_created_event(self):
+        aggregate = UserAggregate.create(
+            email=Email("test@example.com"),
+            username=Username("testuser"),
+            password_hash="hashed",
+        )
+
+        assert len(aggregate.events) == 1
+        assert isinstance(aggregate.events[0], UserCreated)
+        assert aggregate.events[0].email == "test@example.com"
+
+    def test_update_email_raises_email_updated_event(self):
+        aggregate = UserAggregate.create(
+            email=Email("old@example.com"),
+            username=Username("testuser"),
+            password_hash="hashed",
+        )
+        aggregate.clear_events()
+
+        aggregate.update_email(Email("new@example.com"))
+
+        assert len(aggregate.events) == 1
+        assert isinstance(aggregate.events[0], UserEmailUpdated)
+        assert aggregate.events[0].old_email == "old@example.com"
+        assert aggregate.events[0].new_email == "new@example.com"
+
+    def test_reconstitute_does_not_raise_events(self):
+        user = create_test_user()
+        aggregate = UserAggregate.reconstitute(user)
+
+        assert len(aggregate.events) == 0
+```
+
+### Testing Application Layer
+
+#### Command Handlers
+
+```python
+# tests/unit/application/test_command_handlers.py
+class TestCreateUserHandler:
     @pytest.fixture
-    def user_service(self):
-        """Create UserService with mocked repository."""
-        service = UserService()
-        service.repository = AsyncMock()
-        return service
+    def mock_repository(self):
+        return AsyncMock(spec=IUserRepository)
 
     @pytest.fixture
-    def sample_user_create(self):
-        """Sample UserCreate data."""
-        return UserCreate(
+    def mock_domain_service(self, mock_repository):
+        return UserDomainService(mock_repository)
+
+    @pytest.fixture
+    def mock_event_bus(self):
+        return AsyncMock(spec=IEventBus)
+
+    @pytest.fixture
+    def mock_password_hasher(self):
+        hasher = AsyncMock(spec=IPasswordHasher)
+        hasher.hash.return_value = "hashed_password"
+        return hasher
+
+    @pytest.fixture
+    def handler(self, mock_repository, mock_domain_service, mock_event_bus, mock_password_hasher):
+        return CreateUserHandler(
+            repository=mock_repository,
+            domain_service=mock_domain_service,
+            event_bus=mock_event_bus,
+            password_hasher=mock_password_hasher,
+        )
+
+    async def test_create_user_success(self, handler, mock_repository, mock_event_bus):
+        # Arrange
+        mock_repository.exists_by_email.return_value = False
+        mock_repository.exists_by_username.return_value = False
+
+        command = CreateUserCommand(
+            email="test@example.com",
+            username="testuser",
+            password="password123",
+            full_name="Test User",
+        )
+
+        # Act
+        user_id = await handler.handle(command)
+
+        # Assert
+        assert user_id is not None
+        mock_repository.save.assert_called_once()
+        mock_event_bus.publish.assert_called()
+
+    async def test_create_user_duplicate_email_raises_error(self, handler, mock_repository):
+        # Arrange
+        mock_repository.exists_by_email.return_value = True
+
+        command = CreateUserCommand(
+            email="existing@example.com",
+            username="testuser",
+            password="password123",
+        )
+
+        # Act & Assert
+        with pytest.raises(UserAlreadyExists) as exc_info:
+            await handler.handle(command)
+
+        assert exc_info.value.context["field"] == "email"
+```
+
+#### Query Handlers
+
+```python
+# tests/unit/application/test_query_handlers.py
+class TestGetUserByIdHandler:
+    @pytest.fixture
+    def mock_repository(self):
+        return AsyncMock()
+
+    @pytest.fixture
+    def handler(self, mock_repository):
+        return GetUserByIdHandler(repository=mock_repository)
+
+    async def test_get_user_returns_read_model(self, handler, mock_repository):
+        # Arrange
+        expected = UserReadModel(
+            id="123",
             email="test@example.com",
             username="testuser",
             full_name="Test User",
-            password="password123",
-            is_active=True
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
         )
-```
+        mock_repository.get_by_id.return_value = expected
 
-#### Testing Business Logic
+        query = GetUserByIdQuery(user_id="123")
 
-```python
-async def test_create_user_success(self, user_service, sample_user_create, mock_user):
-    """Test successful user creation."""
-    # Arrange
-    user_service.repository.email_exists.return_value = False
-    user_service.repository.username_exists.return_value = False
-    user_service.repository.create.return_value = mock_user
+        # Act
+        result = await handler.handle(query)
 
-    # Act
-    result = await user_service.create_user(sample_user_create)
+        # Assert
+        assert result == expected
+        mock_repository.get_by_id.assert_called_once_with("123")
 
-    # Assert
-    assert isinstance(result, UserResponse)
-    assert result.email == sample_user_create.email
-    user_service.repository.create.assert_called_once()
-```
+    async def test_get_user_not_found_returns_none(self, handler, mock_repository):
+        # Arrange
+        mock_repository.get_by_id.return_value = None
+        query = GetUserByIdQuery(user_id="nonexistent")
 
-#### Testing Error Conditions
+        # Act
+        result = await handler.handle(query)
 
-```python
-async def test_create_user_email_exists(self, user_service, sample_user_create):
-    """Test user creation fails when email already exists."""
-    # Arrange
-    user_service.repository.email_exists.return_value = True
-
-    # Act & Assert
-    with pytest.raises(HTTPException) as exc_info:
-        await user_service.create_user(sample_user_create)
-
-    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
-    assert "Email already registered" in str(exc_info.value.detail)
-```
-
-### DTO Testing
-
-#### Validation Testing
-
-```python
-# app/tests/unit/test_user_models.py
-class TestUserDTOs:
-    def test_user_create_valid(self):
-        """Test valid UserCreate DTO."""
-        user_data = {
-            "email": "test@example.com",
-            "username": "testuser",
-            "full_name": "Test User",
-            "password": "password123",
-            "is_active": True
-        }
-
-        user_create = UserCreate(**user_data)
-
-        assert user_create.email == "test@example.com"
-        assert user_create.username == "testuser"
-        assert user_create.is_active is True
-```
-
-#### Error Validation Testing
-
-```python
-def test_user_create_invalid_email(self):
-    """Test UserCreate with invalid email."""
-    user_data = {
-        "email": "invalid-email",
-        "username": "testuser",
-        "password": "password123"
-    }
-
-    with pytest.raises(ValidationError) as exc_info:
-        UserCreate(**user_data)
-
-    assert "value is not a valid email address" in str(exc_info.value)
-```
-
-### Mock User Implementation
-
-```python
-class MockUser:
-    """Mock User model for testing without database."""
-
-    def __init__(self, **kwargs):
-        self.id = kwargs.get('id', uuid4())
-        self.email = kwargs.get('email', '')
-        self.username = kwargs.get('username', '')
-        self.full_name = kwargs.get('full_name')
-        self.is_active = kwargs.get('is_active', True)
-        self.password_hash = kwargs.get('password_hash', '')
-        self.created_at = kwargs.get('created_at', datetime.now(timezone.utc))
-        self.updated_at = kwargs.get('updated_at', datetime.now(timezone.utc))
-
-    def model_dump(self):
-        return {
-            'id': self.id,
-            'email': self.email,
-            'username': self.username,
-            'full_name': self.full_name,
-            'is_active': self.is_active,
-            'created_at': self.created_at,
-            'updated_at': self.updated_at,
-        }
+        # Assert
+        assert result is None
 ```
 
 ## Integration Testing
 
-### Database Integration
+### Using Testcontainers
+
+Integration tests use testcontainers for isolated database instances:
 
 ```python
-# Future implementation
+# tests/integration/postgresql/test_user_repository.py
+import pytest
+from testcontainers.postgres import PostgresContainer
+
+@pytest.fixture(scope="module")
+def postgres_container():
+    with PostgresContainer("postgres:16") as postgres:
+        yield postgres
+
 @pytest.fixture
-async def test_database():
-    """Set up test database."""
-    await init_database(test=True)
-    yield
-    await cleanup_test_database()
+async def postgres_session(postgres_container):
+    engine = create_async_engine(postgres_container.get_connection_url())
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
 
-async def test_create_user_integration(test_client, test_database):
-    """Test user creation with real database."""
-    user_data = {
-        "email": "test@example.com",
-        "username": "testuser",
-        "password": "password123"
-    }
+    async with AsyncSession(engine) as session:
+        yield session
 
-    response = await test_client.post("/v1/users/", json=user_data)
+class TestPostgresUserRepository:
+    async def test_save_and_retrieve_user(self, postgres_session):
+        # Arrange
+        repository = PostgresUserRepository(postgres_session)
+        aggregate = UserAggregate.create(
+            email=Email("test@example.com"),
+            username=Username("testuser"),
+            password_hash="hashed",
+        )
 
-    assert response.status_code == 201
-    assert response.json()["email"] == user_data["email"]
+        # Act
+        await repository.save(aggregate)
+        retrieved = await repository.get_by_id(aggregate.user.id)
+
+        # Assert
+        assert retrieved is not None
+        assert str(retrieved.user.email) == "test@example.com"
+
+    async def test_exists_by_email(self, postgres_session):
+        # Arrange
+        repository = PostgresUserRepository(postgres_session)
+        aggregate = UserAggregate.create(
+            email=Email("exists@example.com"),
+            username=Username("existsuser"),
+            password_hash="hashed",
+        )
+        await repository.save(aggregate)
+
+        # Act & Assert
+        assert await repository.exists_by_email(Email("exists@example.com")) is True
+        assert await repository.exists_by_email(Email("notexists@example.com")) is False
 ```
 
-### API Integration
+### MongoDB Integration Tests
 
 ```python
-# Future implementation
+# tests/integration/mongodb/test_log_repository.py
+from testcontainers.mongodb import MongoDbContainer
+
+@pytest.fixture(scope="module")
+def mongodb_container():
+    with MongoDbContainer("mongo:7.0") as mongo:
+        yield mongo
+
+@pytest.fixture
+async def mongodb_client(mongodb_container):
+    client = AsyncIOMotorClient(mongodb_container.get_connection_url())
+    await init_beanie(database=client.test_db, document_models=[LogModel])
+    yield client
+    await client.close()
+
+class TestMongoLogRepository:
+    async def test_save_and_retrieve_log(self, mongodb_client):
+        repository = MongoLogRepository()
+        aggregate = LogAggregate.create(
+            action="USER_CREATED",
+            user_id="user-123",
+            metadata={"email": "test@example.com"},
+        )
+
+        await repository.save(aggregate)
+        retrieved = await repository.get_by_id(aggregate.log.id)
+
+        assert retrieved is not None
+        assert retrieved.log.action == "USER_CREATED"
+```
+
+## End-to-End Testing
+
+### E2E Test Configuration
+
+E2E tests use separate test databases on running Docker services:
+
+```python
+# tests/e2e/conftest.py
+import pytest
+from httpx import AsyncClient
+from app.main import app
+
 @pytest.fixture
 async def test_client():
-    """Create test client."""
     async with AsyncClient(app=app, base_url="http://test") as client:
         yield client
 
-async def test_user_crud_workflow(test_client, test_database):
-    """Test complete user CRUD workflow."""
-    # Create user
-    create_response = await test_client.post("/v1/users/", json=user_data)
-    user_id = create_response.json()["id"]
+@pytest.fixture(autouse=True)
+async def cleanup_database():
+    # Clean up test data before each test
+    yield
+    # Clean up test data after each test
+```
 
-    # Get user
-    get_response = await test_client.get(f"/v1/users/{user_id}")
-    assert get_response.status_code == 200
+### E2E Tests
 
-    # Update user
-    update_response = await test_client.put(f"/v1/users/{user_id}", json=update_data)
-    assert update_response.status_code == 200
+```python
+# tests/e2e/test_user_api.py
+class TestUserAPI:
+    async def test_create_user(self, test_client):
+        # Arrange
+        user_data = {
+            "email": "newuser@example.com",
+            "username": "newuser",
+            "password": "password123",
+            "full_name": "New User",
+        }
 
-    # Delete user
-    delete_response = await test_client.delete(f"/v1/users/{user_id}")
-    assert delete_response.status_code == 204
+        # Act
+        response = await test_client.post("/v1/users/", json=user_data)
+
+        # Assert
+        assert response.status_code == 201
+        data = response.json()
+        assert data["success"] is True
+        assert "id" in data["data"]
+
+    async def test_get_user_by_id(self, test_client):
+        # Create user first
+        create_response = await test_client.post("/v1/users/", json={...})
+        user_id = create_response.json()["data"]["id"]
+
+        # Get user
+        response = await test_client.get(f"/v1/users/{user_id}")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["data"]["id"] == user_id
+
+    async def test_get_nonexistent_user_returns_404(self, test_client):
+        response = await test_client.get("/v1/users/nonexistent-id")
+
+        assert response.status_code == 404
+        data = response.json()
+        assert data["success"] is False
+        assert data["error_code"] == "USER_NOT_FOUND"
+
+    async def test_create_duplicate_email_returns_409(self, test_client):
+        user_data = {
+            "email": "duplicate@example.com",
+            "username": "user1",
+            "password": "password123",
+        }
+        await test_client.post("/v1/users/", json=user_data)
+
+        # Try to create another user with same email
+        user_data["username"] = "user2"
+        response = await test_client.post("/v1/users/", json=user_data)
+
+        assert response.status_code == 409
+        data = response.json()
+        assert data["error_code"] == "USER_ALREADY_EXISTS"
+
+    async def test_user_crud_workflow(self, test_client):
+        # Create
+        create_response = await test_client.post("/v1/users/", json={
+            "email": "crud@example.com",
+            "username": "cruduser",
+            "password": "password123",
+        })
+        assert create_response.status_code == 201
+        user_id = create_response.json()["data"]["id"]
+
+        # Read
+        get_response = await test_client.get(f"/v1/users/{user_id}")
+        assert get_response.status_code == 200
+
+        # Update
+        update_response = await test_client.put(f"/v1/users/{user_id}", json={
+            "full_name": "Updated Name",
+        })
+        assert update_response.status_code == 200
+
+        # Delete
+        delete_response = await test_client.delete(f"/v1/users/{user_id}")
+        assert delete_response.status_code == 204
+
+        # Verify deleted
+        get_deleted_response = await test_client.get(f"/v1/users/{user_id}")
+        assert get_deleted_response.status_code == 404
 ```
 
 ## Test Configuration
 
 ### pytest Configuration
 
-```ini
+```toml
 # pyproject.toml
 [tool.pytest.ini_options]
-testpaths = ["app/tests"]
+testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -278,39 +505,36 @@ addopts = [
     "-v",
     "--tb=short",
     "--strict-markers",
-    "--strict-config",
     "--asyncio-mode=auto",
 ]
 asyncio_mode = "auto"
 markers = [
     "unit: Unit tests",
     "integration: Integration tests",
+    "e2e: End-to-end tests",
     "slow: Slow tests",
 ]
 ```
 
-### Test Environment
+### Coverage Configuration
 
-```python
-# app/tests/conftest.py
-import pytest
-from unittest.mock import AsyncMock
+```toml
+# pyproject.toml
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "app/main.py",
+    "*/migrations/*",
+    "*/seeds/*",
+]
 
-@pytest.fixture
-def mock_user_repository():
-    """Mock user repository for testing."""
-    return AsyncMock()
-
-@pytest.fixture
-def sample_user_data():
-    """Sample user data for testing."""
-    return {
-        "email": "test@example.com",
-        "username": "testuser",
-        "full_name": "Test User",
-        "password": "password123",
-        "is_active": True
-    }
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
 ```
 
 ## Testing Patterns
@@ -318,80 +542,72 @@ def sample_user_data():
 ### Arrange-Act-Assert (AAA)
 
 ```python
-async def test_user_creation():
+async def test_create_user_success(self, handler, mock_repository):
     # Arrange
-    user_data = UserCreate(email="test@example.com", ...)
-    service.repository.email_exists.return_value = False
+    mock_repository.exists_by_email.return_value = False
+    command = CreateUserCommand(email="test@example.com", ...)
 
     # Act
-    result = await service.create_user(user_data)
+    result = await handler.handle(command)
 
     # Assert
-    assert isinstance(result, UserResponse)
-    assert result.email == user_data.email
-```
-
-### Given-When-Then
-
-```python
-async def test_user_creation_with_duplicate_email():
-    # Given
-    user_data = UserCreate(email="existing@example.com", ...)
-    service.repository.email_exists.return_value = True
-
-    # When
-    with pytest.raises(HTTPException) as exc_info:
-        await service.create_user(user_data)
-
-    # Then
-    assert exc_info.value.status_code == 400
-    assert "Email already registered" in str(exc_info.value.detail)
+    assert result is not None
+    mock_repository.save.assert_called_once()
 ```
 
 ### Parameterized Tests
 
 ```python
-@pytest.mark.parametrize("email,expected_valid", [
+@pytest.mark.parametrize("email,is_valid", [
     ("valid@example.com", True),
     ("invalid-email", False),
     ("@example.com", False),
     ("user@", False),
+    ("a@b.co", True),
 ])
-def test_email_validation(email, expected_valid):
-    """Test email validation with various inputs."""
-    if expected_valid:
-        user = UserCreate(email=email, username="test", password="password123")
-        assert user.email == email
+def test_email_validation(email, is_valid):
+    if is_valid:
+        assert Email(email).value == email
     else:
         with pytest.raises(ValidationError):
-            UserCreate(email=email, username="test", password="password123")
+            Email(email)
 ```
 
-## Test Coverage
+### Test Fixtures
 
-### Coverage Configuration
+```python
+# tests/conftest.py
+@pytest.fixture
+def sample_user_data():
+    return {
+        "email": "test@example.com",
+        "username": "testuser",
+        "password": "password123",
+        "full_name": "Test User",
+    }
 
-```ini
-# pyproject.toml
-[tool.coverage.run]
-source = ["app"]
-omit = [
-    "app/tests/*",
-    "app/main.py",
-    "*/venv/*",
-    "*/virtualenv/*",
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise AssertionError",
-    "raise NotImplementedError",
-]
+@pytest.fixture
+def create_test_user():
+    def _create(**overrides):
+        defaults = {
+            "id": UserId.generate(),
+            "email": Email("test@example.com"),
+            "username": Username("testuser"),
+            "password_hash": "hashed",
+        }
+        defaults.update(overrides)
+        return User(**defaults)
+    return _create
 ```
 
-### Running Coverage
+## Coverage Targets
+
+- **Unit tests**: 90%+ coverage
+- **Domain layer**: 95%+ coverage
+- **Application layer**: 90%+ coverage
+- **Overall**: 85%+ coverage
+
+## Running Coverage
 
 ```bash
 # Run tests with coverage
@@ -403,175 +619,6 @@ poetry run pytest --cov=app --cov-report=html
 
 # View coverage report
 # Open htmlcov/index.html in browser
-```
-
-### Coverage Targets
-
-- **Unit tests**: 90%+ coverage
-- **Business logic**: 95%+ coverage
-- **DTOs**: 100% coverage
-- **Overall**: 85%+ coverage
-
-## Test Data Management
-
-### Test Fixtures
-
-```python
-@pytest.fixture
-def user_create_data():
-    """User creation data."""
-    return {
-        "email": "test@example.com",
-        "username": "testuser",
-        "full_name": "Test User",
-        "password": "password123",
-        "is_active": True
-    }
-
-@pytest.fixture
-def mock_user(user_create_data):
-    """Mock user instance."""
-    return MockUser(**user_create_data)
-```
-
-### Factory Pattern
-
-```python
-class UserFactory:
-    """Factory for creating test users."""
-
-    @staticmethod
-    def create_user_data(**overrides):
-        """Create user data with optional overrides."""
-        default_data = {
-            "email": "test@example.com",
-            "username": "testuser",
-            "full_name": "Test User",
-            "password": "password123",
-            "is_active": True
-        }
-        return {**default_data, **overrides}
-
-    @staticmethod
-    def create_mock_user(**overrides):
-        """Create mock user instance."""
-        data = UserFactory.create_user_data(**overrides)
-        return MockUser(**data)
-```
-
-## Performance Testing
-
-### Test Execution Time
-
-```python
-import time
-import pytest
-
-@pytest.mark.slow
-async def test_bulk_user_creation():
-    """Test creating multiple users (performance test)."""
-    start_time = time.time()
-
-    # Create 1000 users
-    tasks = [create_user(f"user{i}@example.com") for i in range(1000)]
-    await asyncio.gather(*tasks)
-
-    execution_time = time.time() - start_time
-    assert execution_time < 5.0  # Should complete in under 5 seconds
-```
-
-### Memory Usage
-
-```python
-import psutil
-import pytest
-
-def test_memory_usage():
-    """Test memory usage during operations."""
-    process = psutil.Process()
-    initial_memory = process.memory_info().rss
-
-    # Perform memory-intensive operation
-    large_data = create_large_dataset()
-
-    peak_memory = process.memory_info().rss
-    memory_increase = peak_memory - initial_memory
-
-    # Assert memory increase is reasonable
-    assert memory_increase < 100 * 1024 * 1024  # Less than 100MB
-```
-
-## Continuous Integration
-
-### GitHub Actions Example
-
-```yaml
-# .github/workflows/test.yml
-name: Test Suite
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Run tests
-        run: |
-          make ci
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-```
-
-### Local CI Simulation
-
-```bash
-# Run full CI pipeline locally
-make ci
-
-# This runs:
-# - make build
-# - make up
-# - make test-cov
-# - make check
-```
-
-## Debugging Tests
-
-### Test Debugging
-
-```python
-# Add debugging to tests
-import logging
-
-logging.basicConfig(level=logging.DEBUG)
-
-async def test_with_debug():
-    """Test with debug logging."""
-    logger = logging.getLogger(__name__)
-    logger.debug("Starting test...")
-
-    # Test code here
-
-    logger.debug("Test completed")
-```
-
-### Running Single Tests
-
-```bash
-# Run specific test
-make shell
-poetry run pytest app/tests/unit/test_user_models.py::TestUserDTOs::test_user_create_valid -v
-
-# Run with debug output
-poetry run pytest app/tests/unit/test_user_models.py -v -s
-
-# Run with pdb debugger
-poetry run pytest app/tests/unit/test_user_models.py --pdb
 ```
 
 ## Best Practices
@@ -586,75 +633,20 @@ poetry run pytest app/tests/unit/test_user_models.py --pdb
 
 ### Test Organization
 
-1. **Group related tests**: Use classes to group related functionality
-2. **Separate unit and integration**: Different test directories
+1. **Mirror source structure**: Test files match source structure
+2. **Separate by type**: unit/, integration/, e2e/
 3. **Use markers**: Mark slow tests, integration tests, etc.
 4. **Clean test data**: Always clean up after tests
 
-### Test Maintenance
+### Continuous Integration
 
-1. **Update tests with code**: Keep tests in sync with implementation
-2. **Remove obsolete tests**: Delete tests for removed functionality
-3. **Refactor test code**: Apply same quality standards as production code
-4. **Document complex tests**: Explain why, not just what
+```bash
+# Run full CI pipeline locally
+make ci
 
-## Common Testing Patterns
-
-### Testing Async Functions
-
-```python
-async def test_async_function():
-    """Test async function."""
-    result = await some_async_function()
-    assert result is not None
+# This runs:
+# - make build
+# - make up
+# - make test-cov
+# - make check
 ```
-
-### Testing Exceptions
-
-```python
-async def test_exception_handling():
-    """Test exception is raised correctly."""
-    with pytest.raises(ValueError, match="Invalid input"):
-        await function_that_raises_exception()
-```
-
-### Testing with Mock Data
-
-```python
-@patch('app.services.user.User')
-async def test_with_mock_model(mock_user_class):
-    """Test with mocked model."""
-    mock_user_class.return_value = mock_user_instance
-    result = await service.create_user(user_data)
-    assert result is not None
-```
-
-### Testing Database Operations
-
-```python
-async def test_database_operation():
-    """Test database operation with transaction."""
-    async with database.transaction():
-        user = await create_user(user_data)
-        assert user.id is not None
-
-        # Transaction will rollback after test
-```
-
-## Future Enhancements
-
-### Planned Testing Features
-
-1. **Integration tests**: Full API testing with test database
-2. **End-to-end tests**: Complete user workflows
-3. **Performance tests**: Load testing and benchmarking
-4. **Contract tests**: API contract validation
-5. **Mutation testing**: Test quality validation
-
-### Testing Tools
-
-1. **Testcontainers**: Docker containers for integration tests
-2. **Factory Boy**: Advanced test data generation
-3. **Faker**: Realistic test data generation
-4. **Hypothesis**: Property-based testing
-5. **pytest-benchmark**: Performance benchmarking
