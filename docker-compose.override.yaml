@@ -1,0 +1,75 @@
+# Development Override Configuration
+# This file is automatically loaded by docker-compose when running:
+#   docker-compose up
+#
+# It extends the base docker-compose.yaml with development-specific settings
+
+services:
+  # ==========================================================================
+  # Python Application - Development Mode
+  # ==========================================================================
+  python:
+    container_name: ${APP_NAME:-backend-fastapi-app}-python
+    hostname: python
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: .docker/development/python/Dockerfile
+    tty: true
+    networks:
+      - network_app
+    ports:
+      - "8080:8000"
+    volumes:
+      # Mount source code for hot reloading
+      - .:/app
+      # Prevent overwriting container's installed packages
+      - /app/.venv
+    environment:
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - MONGODB_URL=mongodb://${MONGODB_ROOT_USERNAME:-admin}:${MONGODB_ROOT_PASSWORD:-password}@${APP_NAME:-backend-fastapi-app}-mongodb:27017/${MONGODB_DATABASE:-backend_fastapi_app}?authSource=admin
+      - MONGODB_DATABASE=${MONGODB_DATABASE:-backend_fastapi_app}
+      - MONGODB_TEST_DATABASE=${MONGODB_TEST_DATABASE:-backend_fastapi_app_test}
+      - POSTGRES_HOST=postgresql
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-example}
+      - POSTGRES_DB=${POSTGRES_DB:-database_develop}
+      - POSTGRES_TEST_DB=${POSTGRES_TEST_DB:-database_test}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://127.0.0.1:8000/health-check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ==========================================================================
+  # MongoDB - Development Overrides
+  # ==========================================================================
+  mongodb:
+    ports:
+      - "27017:27017"
+
+  # ==========================================================================
+  # PostgreSQL - Development Overrides
+  # ==========================================================================
+  postgresql:
+    ports:
+      - "5432:5432"
+
+  # ==========================================================================
+  # Redis - Development Overrides
+  # ==========================================================================
+  redis:
+    ports:
+      - "6379:6379"

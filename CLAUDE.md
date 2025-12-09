@@ -38,8 +38,18 @@ make check         # Run all quality checks (format, lint, typecheck)
 # Testing (runs in Docker)
 make test          # Run unit tests
 make test-cov      # Run tests with coverage
+make test-integration  # Run integration tests (uses testcontainers)
+make test-e2e      # Run E2E tests (uses test databases)
 make test-all      # Run all tests
 make ci            # Full CI pipeline
+
+# Test Database Management
+make setup-test-db    # Setup test databases (start services + create test DBs)
+make test-db-create   # Create test databases
+make test-db-reset    # Reset test databases (drops and recreates)
+make test-db-clean    # Clean test database data (keeps structure)
+make shell-postgres-test  # Access PostgreSQL test database shell
+make shell-mongo-test     # Access MongoDB test database shell
 
 # Database Management (Both PostgreSQL and MongoDB)
 make db-up         # Start both databases
@@ -95,15 +105,18 @@ make help          # Show all available commands (organized by category)
 
 ## Architecture Overview
 
-### Clean Architecture Pattern
-This FastAPI application follows clean architecture principles with clear separation of concerns and modern design patterns:
+### Clean Architecture + DDD + CQRS Pattern
+This FastAPI application follows Clean Architecture with Domain-Driven Design tactical patterns and full CQRS:
 
-- **Models** (`app/internal/models/`): MongoDB documents using Beanie ODM, inherit from BaseEntity
-- **DTOs** (`app/internal/dtos/`): Data Transfer Objects for API contracts with barrel exports
-- **Services** (`app/internal/services/`): Business logic layer with singleton pattern and dependency injection
-- **Repositories** (`app/internal/repositories/`): Data access layer with repository pattern
-- **Routers** (`app/routers/`): API layer with centralized version organization (`v1/`)
-- **Dependencies** (`app/dependencies/`): Middleware and dependency injection organization
+**Layers (Inner to Outer):**
+- **Domain Layer** (`app/core/domain/`): Aggregates, Entities, Value Objects, Domain Events, Specifications, Repository Interfaces (Protocols)
+- **Application Layer** (`app/core/application/`): Commands, Queries, Handlers (CQRS), Read Models, Interfaces
+- **Presentation Layer** (`app/presentation/`): API Controllers, DTOs, Dependencies
+- **Infrastructure Layer** (`app/infrastructure/`): Database implementations, Event Bus, Mappers
+
+**Database Strategy:**
+- **PostgreSQL**: User entity (write/read with SQLModel + Alembic migrations)
+- **MongoDB**: Log entity (audit trail with Beanie ODM)
 
 ### Technology Stack
 - **Framework**: FastAPI with async support and dependency injection
@@ -117,64 +130,36 @@ This FastAPI application follows clean architecture principles with clear separa
 
 ### Key Architectural Decisions
 
-**🔄 Singleton Services Pattern**: Services use singleton pattern for efficient resource management:
-- Single instance per application lifecycle
-- Proper initialization with `_initialized` flag
-- Dependency injection support with `get_user_service()` functions
-- Memory efficient and consistent state management
+**DDD Tactical Patterns**:
+- **Aggregates**: Consistency boundaries (UserAggregate, LogAggregate)
+- **Entities**: Objects with identity (User, Log)
+- **Value Objects**: Immutable, self-validating (Email, Username, UserId)
+- **Domain Events**: Trigger read model updates (UserCreated, UserUpdated, etc.)
+- **Specifications**: Reusable business rules (UniqueEmailSpec, ActiveUserSpec)
+- **Repository Interfaces**: Protocols for dependency inversion
 
-**📦 Barrel Export Pattern**: All modules use `__init__.py` files for clean imports:
-- Centralized exports: `from app.internal.services import UserService`
-- Better module organization and discoverability
-- Consistent import patterns across the application
-- Easier refactoring and dependency management
+**Full CQRS Pattern**:
+- **Commands** (Write): CreateUserCommand, UpdateUserCommand, DeleteUserCommand
+- **Command Handlers**: Execute writes via aggregates, publish domain events
+- **Queries** (Read): GetUserQuery, ListUsersQuery
+- **Query Handlers**: Read directly from optimized read models
+- **Event Handlers**: Sync read models and create audit logs
 
-**🚀 Centralized API Versioning**: V1 router architecture with prefix management:
-- `app/routers/v1/__init__.py` defines `/v1` prefix once
-- Individual routers don't need version prefixes
-- Clean upgrade path for API evolution
-- Centralized route organization
+**Dependency Injection**:
+- Setter functions for runtime configuration (`set_user_repository()`)
+- FastAPI Depends for request-scoped injection
+- Protocol-based interfaces for loose coupling
 
 **📝 Global Logging Configuration**: Centralized logging with datetime formatting:
-- `app/configs/logging.py` provides comprehensive logging config
+- `app/infrastructure/configs/logging.py` provides comprehensive logging config
 - Global application in `main.py` using `logging.config.dictConfig()`
-- Datetime formatting: `[2024-01-01 12:00:00] app.service.user - INFO - Message`
 - Use `logging.getLogger(__name__)` anywhere for consistent formatting
 
-**🔌 Dependencies Folder Structure**: Organized middleware and dependency injection:
-- `app/dependencies/lifespan.py` manages both database connections (PostgreSQL + MongoDB)
-- `app/dependencies/middleware.py` contains all middleware classes
-- `app/dependencies/__init__.py` exports middleware and lifespan for clean imports
-- Request logging middleware with timing and emoji indicators
-- Security headers middleware for production safety
-- Unified lifespan context manager for dual database support
-
-**Base Entity Pattern**: Models use base classes with common functionality:
-- **MongoDB**: `BaseEntity` (Beanie Document) with UUID IDs, audit trail, soft deletion
-- **PostgreSQL**: `BaseModel` (SQLModel) with UUID IDs, audit trail, soft deletion
-- Timezone-aware datetime using `datetime.now(timezone.utc)` (not deprecated `utcnow()`)
-- Consistent field naming across both database types
-- Database-specific indexes for performance
-
 **Dual Database Integration**:
-- **PostgreSQL**: SQLModel ORM with Alembic migrations for schema management
-- **MongoDB**: Beanie ODM with Motor async driver for document operations
-- Unified lifespan management in `app/dependencies/lifespan.py`
-- Both databases initialized and closed together in application lifecycle
-- Connection pooling for both databases
-
-**Repository Pattern**:
-- Separate data access layer for MongoDB operations
-- Async repository methods for CRUD operations
-- Business logic separated from data access
-- Easy mocking for unit tests
-
-**Configuration Management**:
-- Pydantic Settings with environment variable support
-- Database connection configuration for both PostgreSQL and MongoDB
-- Singleton pattern using `@lru_cache()` decorators
-- Environment-aware configuration (development/staging/production)
-- Global logging configuration with datetime formatting
+- **PostgreSQL**: User entity with SQLModel + Alembic migrations
+- **MongoDB**: Log entity for audit trail with Beanie ODM
+- Event-driven synchronization between write and read models
+- Unified lifespan management in `app/infrastructure/setup.py`
 
 **Docker-First Development**:
 - All development commands run in Docker containers
@@ -186,18 +171,25 @@ This FastAPI application follows clean architecture principles with clear separa
   - `makefiles/database.mk` - Database operations (PostgreSQL & MongoDB)
   - `makefiles/utils.mk` - Utilities (install, shell, logs, health)
   - `makefiles/workflow.mk` - Development workflows (dev, ci, verify)
-- Main `Makefile` includes all modules with shared variables
-- Organized `make help` output grouped by category
 - No local Python environment required
 
-### Data Flow Pattern
-1. **Request** → Router (validation, serialization)
-2. **Router** → Middleware (logging, security headers, timing)
-3. **Router** → Dependency Injection (`get_user_service()`)
-4. **Router** → Service (business logic, audit tracking, singleton instance)
-5. **Service** → Repository (data access layer)
-6. **Repository** → MongoDB (via Beanie ODM)
-7. **Response** ← DTO (clean API contracts)
+### Data Flow Pattern (CQRS)
+
+**Write Path (Commands):**
+1. **Request** → Controller (presentation layer)
+2. **Controller** → Command Handler (application layer)
+3. **Command Handler** → Aggregate (domain layer)
+4. **Aggregate** → Write Repository (infrastructure layer)
+5. **Write Repository** → PostgreSQL/MongoDB
+6. **Domain Events** → Event Bus → Event Handlers
+7. **Event Handlers** → Update Read Models + Create Logs
+
+**Read Path (Queries):**
+1. **Request** → Controller (presentation layer)
+2. **Controller** → Query Handler (application layer)
+3. **Query Handler** → Read Repository (infrastructure layer)
+4. **Read Repository** → Optimized Read Model
+5. **Response** ← DTO
 
 ### Environment Configuration
 The application uses environment-based configuration with `.env` file support:
@@ -234,9 +226,25 @@ The application uses environment-based configuration with `.env` file support:
 - Async/await support throughout
 
 ### Testing Structure
-- Unit tests: `app/tests/unit/` (business logic with mocked dependencies)
-- E2E tests: `app/tests/e2e/` (full integration tests)
-- Service layer testing with mock repositories
+- **Unit tests**: `tests/unit/` - Business logic with mocked dependencies
+- **Integration tests**: `tests/integration/` - Real databases via testcontainers (isolated containers)
+- **E2E tests**: `tests/e2e/` - Full API tests with test databases on running Docker services
+
+**Test Database Strategy (Option 1)**:
+- Uses separate database names on the same running Docker containers
+- Development databases: `database_develop` (PostgreSQL), `backend_fastapi_app_dev` (MongoDB)
+- Test databases: `database_test` (PostgreSQL), `backend_fastapi_app_test` (MongoDB)
+- E2E tests automatically connect to test databases and clean up between tests
+
+**Running Tests**:
+```bash
+make test              # Unit tests (mocked)
+make test-integration  # Integration tests (testcontainers)
+make test-e2e          # E2E tests (test databases on Docker services)
+make setup-test-db     # Create test databases before first E2E run
+```
+
+- Command/Query handler testing with mock repositories
 - pytest-asyncio for async test support
 - pytest configuration in pyproject.toml
 - All tests run in Docker containers via Makefile
@@ -248,27 +256,29 @@ The application uses environment-based configuration with `.env` file support:
 **Use Barrel Exports for Imports**:
 ```python
 # ✅ Correct - Use barrel exports
-from app.internal.services import UserService, get_user_service
-from app.internal.dtos import UserCreate, UserResponse
-from app.internal.exceptions import UserNotFound, UserAlreadyExists
+from app.core.application.commands import CreateUserCommand
+from app.core.application.queries import GetUserQuery, ListUsersQuery
+from app.core.domain.exceptions import UserNotFound, UserAlreadyExists
+from app.presentation.dtos import UserCreateRequest, UserResponse
 
 # ❌ Avoid - Direct file imports
-from app.internal.services.user import UserService
-from app.internal.dtos.user import UserCreate
+from app.core.application.commands.user.create_user import CreateUserCommand
 ```
 
-**Use Singleton Services with Dependency Injection**:
+**Use CQRS Handlers with Dependency Injection**:
 ```python
-# ✅ Correct - FastAPI dependency injection
+# ✅ Correct - FastAPI dependency injection with handlers
 @router.post("/")
 async def create_user(
-    user_data: UserCreate,
-    user_service: UserService = Depends(get_user_service)
+    request: UserCreateRequest,
+    handler: CreateUserHandler = Depends(get_create_user_handler)
 ):
-    return await user_service.create_user(user_data)
+    command = CreateUserCommand(email=request.email, ...)
+    user_id = await handler.handle(command)
+    return {"id": user_id}
 
-# ❌ Avoid - Direct service instantiation
-user_service = UserService()  # Creates new instance every time
+# ❌ Avoid - Direct handler instantiation
+handler = CreateUserHandler(...)  # Bypasses DI
 ```
 
 **Use Standard Logging Pattern**:
@@ -286,11 +296,11 @@ print("User created")  # No datetime, not structured
 **Use Centralized API Versioning**:
 ```python
 # ✅ Correct - V1 router handles prefix
-# app/routers/v1/__init__.py
+# app/presentation/api/v1/__init__.py
 v1_router = APIRouter(prefix="/v1")
 v1_router.include_router(user.router)
 
-# app/routers/v1/user.py
+# app/presentation/api/v1/user.py
 router = APIRouter(prefix="/users")  # Just the resource prefix
 
 # ❌ Avoid - Version prefix in individual routers
@@ -410,70 +420,64 @@ All API responses use consistent structure via `APIResponse` utility:
 ## File Structure
 ```
 app/
-├── configs/          # Configuration modules
-│   ├── __init__.py  # ✨ Barrel exports for all configurations
-│   ├── app.py       # Main app configuration
-│   ├── logging.py   # Global logging configuration with datetime
-│   └── version.py   # Version management
-├── databases/        # 🆕 Database layer (PostgreSQL & MongoDB)
-│   ├── no_sql/           # MongoDB database manager
-│   │   └── manager.py    # MongoDB connection & Beanie initialization
-│   └── sql/              # PostgreSQL database manager & migrations
-│       ├── manager.py    # PostgreSQL connection & SQLModel setup
-│       ├── migrations/   # Alembic migrations
-│       │   ├── env.py    # Alembic environment configuration
-│       │   └── versions/ # Migration version files
-│       └── seeds/        # Database seeding scripts
-│           └── seed_runner.py  # Seed data management
-├── dependencies/     # 🆕 Dependency injection and middleware
-│   ├── __init__.py      # Exports for dependency injection
-│   ├── lifespan.py      # Unified lifespan for both databases
-│   └── middleware.py    # Request logging, security headers, timing
-├── internal/         # Domain/business logic layer
-│   ├── __init__.py  # Internal module organization
-│   ├── dtos/            # Data Transfer Objects
-│   │   ├── __init__.py      # ✨ All DTOs exported via barrel pattern
-│   │   ├── system.py        # System-related DTOs
-│   │   └── user.py          # User-related DTOs and validation
-│   ├── exceptions/      # Domain exceptions organized by type
-│   │   ├── __init__.py          # ✨ All exceptions with barrel exports
-│   │   ├── base.py              # Base exception classes
-│   │   ├── handlers.py          # Exception to HTTP response handlers
-│   │   ├── infrastructure.py    # Infrastructure exceptions
-│   │   ├── user.py              # User domain exceptions
-│   │   └── validation.py        # Validation & business rule exceptions
-│   ├── models/          # Database models
-│   │   ├── no_sql/          # MongoDB models (Beanie)
-│   │   │   ├── __init__.py  # Model exports
-│   │   │   ├── base.py      # BaseEntity with audit trail
-│   │   │   └── user.py      # MongoDB User model
-│   │   ├── sql/             # PostgreSQL models (SQLModel)
-│   │   │   ├── __init__.py  # Model exports
-│   │   │   ├── base.py      # BaseModel with audit trail
-│   │   │   └── user.py      # PostgreSQL User model
-│   │   └── __init__.py      # Top-level model exports
-│   ├── repositories/    # Data access layer
-│   │   ├── __init__.py      # ✨ Repository exports
-│   │   └── user.py          # User repository with async MongoDB operations
-│   └── services/        # Business logic with singleton pattern
-│       ├── __init__.py      # ✨ Service exports including dependency functions
-│       ├── system.py        # System service for health checks
-│       └── user.py          # 🔄 Singleton UserService with DI support
-├── routers/          # API route handlers
-│   ├── __init__.py  # Router organization
-│   ├── system.py    # System endpoints
-│   └── v1/              # 🚀 Version 1 API with centralized management
-│       ├── __init__.py      # V1 router with /v1 prefix centralization
-│       └── user.py          # User endpoints
-├── utils/            # Utility functions and helpers
-│   ├── __init__.py      # Utility exports
-│   └── response.py      # Standardized API response utilities
-├── tests/            # Test suite
-│   ├── __init__.py  # Test configuration
-│   ├── conftest.py  # Shared test fixtures and configuration
-│   ├── unit/            # Unit tests with comprehensive mocking
-│   └── e2e/             # End-to-end integration tests
-└── main.py           # 🎯 Application entry point with global configuration
+├── core/                 # 🎯 INNER LAYERS (no framework dependencies)
+│   ├── domain/          # Layer 1: DOMAIN (DDD patterns)
+│   │   ├── aggregates/      # Aggregate roots (UserAggregate, LogAggregate)
+│   │   ├── entities/        # Entities (User, Log)
+│   │   ├── value_objects/   # Value objects (Email, Username, UserId)
+│   │   ├── events/          # Domain events (UserCreated, UserUpdated, etc.)
+│   │   ├── specifications/  # Business rules (UniqueEmailSpec, ActiveUserSpec)
+│   │   ├── services/        # Domain services
+│   │   ├── repositories/    # Repository interfaces (Protocols)
+│   │   └── exceptions/      # Domain exceptions
+│   │
+│   └── application/     # Layer 2: APPLICATION (CQRS)
+│       ├── commands/        # Write side
+│       │   ├── user/            # User commands (CreateUser, UpdateUser, etc.)
+│       │   ├── log/             # Log commands
+│       │   └── handlers/        # Command handlers
+│       ├── queries/         # Read side
+│       │   ├── user/            # User queries (GetUser, ListUsers)
+│       │   ├── log/             # Log queries
+│       │   └── handlers/        # Query handlers
+│       ├── read_models/     # Optimized read models
+│       └── interfaces/      # IEventBus, IPasswordHasher, etc.
+│
+├── presentation/         # Layer 3: PRESENTATION (interface adapters)
+│   ├── api/             # REST API controllers
+│   │   ├── v1/              # API version 1
+│   │   │   ├── user.py          # User endpoints
+│   │   │   └── log.py           # Log endpoints
+│   │   └── system.py        # System endpoints (health, version)
+│   ├── dependencies/    # FastAPI dependency injection
+│   └── dtos/            # Data Transfer Objects
+│
+├── infrastructure/       # Layer 4: INFRASTRUCTURE (frameworks)
+│   ├── configs/         # Configuration (app, logging, version)
+│   ├── persistence/     # Database implementations
+│   │   ├── postgresql/      # PostgreSQL (User entity)
+│   │   │   ├── models/          # SQLModel models
+│   │   │   ├── repositories/    # Write/Read repository implementations
+│   │   │   ├── mappers/         # Entity <-> Model mappers
+│   │   │   ├── migrations/      # Alembic migrations
+│   │   │   ├── seeds/           # Database seeding
+│   │   │   └── database.py      # Connection manager
+│   │   └── mongodb/         # MongoDB (Log entity)
+│   │       ├── models/          # Beanie models
+│   │       ├── repositories/    # Write/Read repository implementations
+│   │       ├── mappers/         # Entity <-> Model mappers
+│   │       └── database.py      # Connection manager
+│   ├── messaging/       # Event bus, password hasher
+│   ├── event_handlers/  # Domain event handlers
+│   ├── web/             # Web infrastructure (middleware, response utils, exception handlers)
+│   └── setup.py         # Dependency injection setup
+│
+└── main.py               # Application entry point
+
+tests/                    # 🧪 Test suite (outside app/)
+├── unit/                # Unit tests
+├── e2e/                 # End-to-end tests
+└── conftest.py          # Shared fixtures
 ```
 
 # important-instruction-reminders

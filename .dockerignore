@@ -1,55 +1,55 @@
 # Git
 .git
 .gitignore
+.gitattributes
 
 # Documentation
 README.md
 CLAUDE.md
+AGENTS.md
 *.md
+docs/
 
-# Python
-__pycache__
-*.pyc
-*.pyo
-*.pyd
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
 .Python
 pip-log.txt
 pip-delete-this-directory.txt
-.tox
-.coverage
-.coverage.*
-.pytest_cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis
-.mypy_cache
+
+# Type checking and linting cache
+.mypy_cache/
 .dmypy.json
 dmypy.json
+.pyright/
+.ruff_cache/
 
 # Virtual environments
-.env
-.venv
-env/
+.venv/
 venv/
+env/
 ENV/
 env.bak/
 venv.bak/
 
-# Environment files
+# Environment files (keep .env.example for reference)
+.env
 .env.local
 .env.development
 .env.staging
 .env.production
-.env.example
 
-# IDEs
+# IDEs and editors
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
+.project
+.pydevproject
+.settings/
 
 # OS generated files
 .DS_Store
@@ -66,27 +66,36 @@ logs/
 .log/
 
 # Testing
+tests/
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
 .tox/
 .nox/
+.hypothesis/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
 
 # Build artifacts
 build/
 dist/
 *.egg-info/
+wheels/
+*.egg
 
-# Docker
-Dockerfile*
-docker-compose*.yml
-docker-compose*.yaml
-.dockerignore
+# Makefiles (not needed in container)
+Makefile
+makefiles/
 
 # Temporary files
 tmp/
 temp/
 .tmp/
+*.bak
+*.tmp
 
 # Application specific
 uploads/

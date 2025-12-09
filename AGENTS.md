@@ -7,14 +7,14 @@
 6. Execute unit tests using `make test`; coverage with `make test-cov`.
 7. Integration suite runs with `make test-integration`; all tests via `make test-all`.
 8. CI smoke via `make ci`; watch mode available at `make test-watch`.
-9. Single test flow: `make shell` → `poetry run pytest app/tests/path::test_name -v`.
-10. Respect barrel imports (`from app.internal.services import UserService`).
-11. Keep layer boundaries router → service → repository → model → database.
+9. Single test flow: `make shell` → `poetry run pytest tests/path::test_name -v`.
+10. Respect barrel imports (`from app.core.application.commands import CreateUserCommand`).
+11. Keep layer boundaries: presentation → application → domain ← infrastructure.
 12. Follow Ruff defaults (PEP 8, 4-space indents, trailing commas encouraged).
 13. Annotate functions with modern typing (`list[T]`, `Type | None`, dataclass models).
 14. Keep async flows truly async; avoid blocking I/O in services or repositories.
 15. Use `datetime.now(timezone.utc)` for timestamps; never `datetime.utcnow()`.
 16. Initialize loggers via `logging.getLogger(__name__)`; no print statements.
-17. Services raise domain exceptions; routers translate via handlers/`APIResponse`.
-18. Preserve singleton services and dependency providers (e.g., `get_user_service()`).
+17. Domain raises domain exceptions; presentation translates via handlers/`APIResponse`.
+18. Use dependency injection via FastAPI Depends and setter functions.
 19. DTOs and models extend project base classes and maintain audit fields.

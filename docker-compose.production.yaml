@@ -1,61 +1,87 @@
-networks:
-    network_app:
-        driver: bridge
-
-volumes:
-    mongodb_data:
+# Production Override Configuration
+# Usage: docker-compose -f docker-compose.yaml -f docker-compose.production.yaml up -d
+#
+# This file extends the base docker-compose.yaml with production-specific settings
 
 services:
-    python:
-        container_name: ${APP_NAME}-server_python
-        hostname: ${APP_NAME}-server_python
-        restart: unless-stopped
-        build:
-            context: .
-            dockerfile: .docker/production/python/Dockerfile
-        networks:
-            - network_app
-        ports:
-            - 8080:8000
-        volumes:
-            - .log:/var/log
-        environment:
-            MONGODB_URL: mongodb://${MONGODB_ROOT_USERNAME}:${MONGODB_ROOT_PASSWORD}@${APP_NAME}-mongodb:27017/${MONGODB_DATABASE}?authSource=admin
-            MONGODB_DATABASE: ${MONGODB_DATABASE}
-            ENVIRONMENT: production
-        depends_on:
-            mongodb:
-                condition: service_healthy
-        command: poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000
-        healthcheck:
-            test:
-                [
-                    "CMD",
-                    "curl",
-                    "--fail",
-                    "http://127.0.0.1:8000/health-check",
-                ]
-            interval: 30s
-            timeout: 10s
-            retries: 3
-            start_period: 40s
+  # ==========================================================================
+  # Python Application - Production Mode
+  # ==========================================================================
+  python:
+    container_name: ${APP_NAME:-backend-fastapi-app}-python
+    hostname: python
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: .docker/production/python/Dockerfile
+      target: production
+    networks:
+      - network_app
+    ports:
+      - "8080:8000"
+    volumes:
+      # Only mount logs directory in production
+      - ./.log:/app/logs
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - MONGODB_URL=mongodb://${MONGODB_ROOT_USERNAME}:${MONGODB_ROOT_PASSWORD}@${APP_NAME:-backend-fastapi-app}-mongodb:27017/${MONGODB_DATABASE}?authSource=admin
+      - MONGODB_DATABASE=${MONGODB_DATABASE}
+      - POSTGRES_HOST=postgresql
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SECRET_KEY=${SECRET_KEY}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # Healthcheck is defined in the Dockerfile for production
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
-    mongodb:
-        container_name: ${APP_NAME}-mongodb
-        hostname: ${APP_NAME}-mongodb
-        image: mongo:7.0
-        restart: unless-stopped
-        networks:
-            - network_app
-        environment:
-            MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME}
-            MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD}
-            MONGO_INITDB_DATABASE: ${MONGODB_DATABASE}
-        volumes:
-            - mongodb_data:/data/db
-        healthcheck:
-            test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-            interval: 30s
-            timeout: 10s
-            retries: 3
-            start_period: 40s
+  # ==========================================================================
+  # MongoDB - Production Overrides (no exposed ports)
+  # ==========================================================================
+  mongodb:
+    # No ports exposed in production for security
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==========================================================================
+  # PostgreSQL - Production Overrides (no exposed ports)
+  # ==========================================================================
+  postgresql:
+    # No ports exposed in production for security
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==========================================================================
+  # Redis - Production Overrides (no exposed ports)
+  # ==========================================================================
+  redis:
+    # No ports exposed in production for security
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
