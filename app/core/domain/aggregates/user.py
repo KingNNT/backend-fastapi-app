@@ -36,7 +36,7 @@ class UserAggregate:
         cls,
         email: Email,
         username: Username,
-        password_hash: str,
+        password: str,
         full_name: Optional[str] = None,
     ) -> "UserAggregate":
         """Factory method to create a new user aggregate."""
@@ -44,7 +44,7 @@ class UserAggregate:
             id=UserId.generate(),
             email=email,
             username=username,
-            password_hash=password_hash,
+            password=password,
             full_name=full_name,
             is_active=True,
         )
@@ -105,7 +105,7 @@ class UserAggregate:
             )
         )
 
-    def update_password(self, new_password_hash: str) -> None:
+    def update_password(self, new_password: str) -> None:
         """Update user's password."""
         if not self._user.is_active:
             raise InvalidUserState(
@@ -113,7 +113,7 @@ class UserAggregate:
                 current_state="inactive",
                 required_state="active",
             )
-        self._user.update_password(new_password_hash)
+        self._user.update_password(new_password)
         self._events.append(UserPasswordUpdated(user_id=self._user.id_str))
 
     def update_profile(

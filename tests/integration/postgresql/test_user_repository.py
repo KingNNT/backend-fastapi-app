@@ -29,7 +29,7 @@ class TestPostgresUserWriteRepository:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hashed_password_123",
+            password="hashed_password_123",
             full_name="Test User",
         )
 
@@ -43,7 +43,7 @@ class TestPostgresUserWriteRepository:
         assert retrieved.user.email_str == "test@example.com"
         assert retrieved.user.username_str == "testuser"
         assert retrieved.user.full_name == "Test User"
-        assert retrieved.user.password_hash == "hashed_password_123"
+        assert retrieved.user.password == "hashed_password_123"
         assert retrieved.user.is_active is True
 
     async def test_save_updates_existing_user(self, postgres_session):
@@ -55,7 +55,7 @@ class TestPostgresUserWriteRepository:
         aggregate = UserAggregate.create(
             email=Email("original@example.com"),
             username=Username("originaluser"),
-            password_hash="original_hash",
+            password="original_hash",
             full_name="Original Name",
         )
         await write_repo.save(aggregate)
@@ -82,7 +82,7 @@ class TestPostgresUserWriteRepository:
         aggregate = UserAggregate.create(
             email=Email("delete@example.com"),
             username=Username("deleteuser"),
-            password_hash="hash",
+            password="hash",
         )
         await write_repo.save(aggregate)
 
@@ -112,7 +112,7 @@ class TestPostgresUserWriteRepository:
         aggregate = UserAggregate.create(
             email=email,
             username=Username("existsuser"),
-            password_hash="hash",
+            password="hash",
         )
         await write_repo.save(aggregate)
 
@@ -135,7 +135,7 @@ class TestPostgresUserWriteRepository:
         aggregate = UserAggregate.create(
             email=Email("unique@example.com"),
             username=username,
-            password_hash="hash",
+            password="hash",
         )
         await write_repo.save(aggregate)
 
@@ -158,7 +158,7 @@ class TestPostgresUserReadRepository:
         aggregate = UserAggregate.create(
             email=email,
             username=Username("byemailuser"),
-            password_hash="hash",
+            password="hash",
         )
         await write_repo.save(aggregate)
 
@@ -178,7 +178,7 @@ class TestPostgresUserReadRepository:
         aggregate = UserAggregate.create(
             email=Email("byusername@example.com"),
             username=username,
-            password_hash="hash",
+            password="hash",
         )
         await write_repo.save(aggregate)
 
@@ -199,7 +199,7 @@ class TestPostgresUserReadRepository:
             aggregate = UserAggregate.create(
                 email=Email(f"user{i}@example.com"),
                 username=Username(f"listuser{i}"),
-                password_hash="hash",
+                password="hash",
             )
             await write_repo.save(aggregate)
 
@@ -221,7 +221,7 @@ class TestPostgresUserReadRepository:
         active = UserAggregate.create(
             email=Email("active@example.com"),
             username=Username("activeuser"),
-            password_hash="hash",
+            password="hash",
         )
         await write_repo.save(active)
 
@@ -229,7 +229,7 @@ class TestPostgresUserReadRepository:
         deleted = UserAggregate.create(
             email=Email("deleted@example.com"),
             username=Username("deleteduser"),
-            password_hash="hash",
+            password="hash",
         )
         await write_repo.save(deleted)
         deleted.soft_delete()
@@ -257,7 +257,7 @@ class TestPostgresUserReadRepository:
             aggregate = UserAggregate.create(
                 email=Email(f"count{i}@example.com"),
                 username=Username(f"countuser{i}"),
-                password_hash="hash",
+                password="hash",
             )
             await write_repo.save(aggregate)
 
@@ -287,7 +287,7 @@ class TestPostgresUserReadModelRepository:
         aggregate = UserAggregate.create(
             email=Email("readmodel@example.com"),
             username=Username("readmodeluser"),
-            password_hash="hash",
+            password="hash",
             full_name="Read Model User",
         )
         await write_repo.save(aggregate)

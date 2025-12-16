@@ -24,7 +24,7 @@ class UserModel(BaseModel, table=True):
         index=True,
         description="Username",
     )
-    password_hash: str = Field(
+    password: str = Field(
         ...,
         description="Hashed password",
     )

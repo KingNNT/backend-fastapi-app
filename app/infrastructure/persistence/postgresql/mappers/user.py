@@ -21,7 +21,7 @@ class UserMapper:
             id=user.id.value,
             email=user.email_str,
             username=user.username_str,
-            password_hash=user.password_hash,
+            password=user.password,
             full_name=user.full_name,
             is_active=user.is_active,
             created_at=strip_timezone(user.created_at),
@@ -39,7 +39,7 @@ class UserMapper:
             id=UserId(value=model.id),
             email=Email(model.email),
             username=Username(model.username),
-            password_hash=model.password_hash,
+            password=model.password,
             full_name=model.full_name,
             is_active=model.is_active,
             created_at=model.created_at,
@@ -76,7 +76,7 @@ class UserMapper:
         user = aggregate.user
         model.email = user.email_str
         model.username = user.username_str
-        model.password_hash = user.password_hash
+        model.password = user.password
         model.full_name = user.full_name
         model.is_active = user.is_active
         model.updated_at = strip_timezone(user.updated_at)

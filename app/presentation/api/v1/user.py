@@ -2,11 +2,22 @@
 
 from fastapi import APIRouter, Query, status
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
+from app.core.application.commands.assignment import (
+    AssignPermissionToUserCommand,
+    AssignRoleToUserCommand,
+    RemovePermissionFromUserCommand,
+    RemoveRoleFromUserCommand,
+)
 from app.core.application.commands.user import (
     CreateUserCommand,
     DeleteUserCommand,
     UpdateUserCommand,
+)
+from app.core.application.queries.assignment import (
+    GetUserEffectivePermissionsQuery,
+    GetUserRolesQuery,
 )
 from app.core.application.queries.user import (
     GetUserByEmailQuery,
@@ -24,6 +35,14 @@ from app.presentation.dependencies import (
     ListUsersHandlerDep,
     UpdateUserHandlerDep,
 )
+from app.presentation.dependencies.handlers import (
+    AssignPermissionToUserHandlerDep,
+    AssignRoleToUserHandlerDep,
+    GetUserEffectivePermissionsHandlerDep,
+    GetUserRolesHandlerDep,
+    RemovePermissionFromUserHandlerDep,
+    RemoveRoleFromUserHandlerDep,
+)
 from app.presentation.dtos import (
     BadRequestResponse,
     ConflictResponse,
@@ -36,6 +55,19 @@ from app.presentation.dtos import (
     UserUpdateRequest,
     ValidationErrorResponse,
 )
+
+
+class AssignRoleRequest(BaseModel):
+    """Request DTO for assigning a role to a user."""
+
+    role_id: str = Field(..., description="Role ID to assign")
+
+
+class AssignPermissionRequest(BaseModel):
+    """Request DTO for assigning a permission to a user."""
+
+    permission_id: str = Field(..., description="Permission ID to assign")
+
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -280,6 +312,196 @@ async def delete_user(
 ) -> JSONResponse:
     """Delete a user (soft delete)."""
     command = DeleteUserCommand(user_id=user_id)
+    await handler.handle(command)
+
+    return JSONResponse(
+        status_code=status.HTTP_204_NO_CONTENT,
+        content=None,
+    )
+
+
+# User-Role assignment endpoints
+@router.get(
+    "/{user_id}/roles",
+    response_model=SuccessResponse[list],
+    responses={
+        404: {"model": NotFoundResponse, "description": "User not found"},
+    },
+)
+async def get_user_roles(
+    user_id: str,
+    handler: GetUserRolesHandlerDep,
+) -> JSONResponse:
+    """Get all roles assigned to a user."""
+    query = GetUserRolesQuery(user_id=user_id)
+    roles = await handler.handle(query)
+
+    role_responses = [
+        {
+            "id": role.id,
+            "name": role.name,
+            "description": role.description,
+            "created_at": role.created_at.isoformat(),
+            "updated_at": role.updated_at.isoformat(),
+        }
+        for role in roles
+    ]
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "success": True,
+            "message": "User roles retrieved successfully",
+            "data": role_responses,
+        },
+    )
+
+
+@router.post(
+    "/{user_id}/roles",
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        404: {"model": NotFoundResponse, "description": "User or role not found"},
+        409: {"model": ConflictResponse, "description": "Role already assigned"},
+    },
+)
+async def assign_role_to_user(
+    user_id: str,
+    request: AssignRoleRequest,
+    handler: AssignRoleToUserHandlerDep,
+) -> JSONResponse:
+    """Assign a role to a user."""
+    command = AssignRoleToUserCommand(
+        user_id=user_id,
+        role_id=request.role_id,
+    )
+    await handler.handle(command)
+
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content={
+            "success": True,
+            "message": "Role assigned to user successfully",
+            "data": {
+                "user_id": user_id,
+                "role_id": request.role_id,
+            },
+        },
+    )
+
+
+@router.delete(
+    "/{user_id}/roles/{role_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        404: {"model": NotFoundResponse, "description": "Assignment not found"},
+    },
+)
+async def remove_role_from_user(
+    user_id: str,
+    role_id: str,
+    handler: RemoveRoleFromUserHandlerDep,
+) -> JSONResponse:
+    """Remove a role from a user."""
+    command = RemoveRoleFromUserCommand(
+        user_id=user_id,
+        role_id=role_id,
+    )
+    await handler.handle(command)
+
+    return JSONResponse(
+        status_code=status.HTTP_204_NO_CONTENT,
+        content=None,
+    )
+
+
+# User-Permission assignment endpoints
+@router.get(
+    "/{user_id}/permissions",
+    response_model=SuccessResponse[list],
+    responses={
+        404: {"model": NotFoundResponse, "description": "User not found"},
+    },
+)
+async def get_user_effective_permissions(
+    user_id: str,
+    handler: GetUserEffectivePermissionsHandlerDep,
+) -> JSONResponse:
+    """Get all effective permissions for a user (includes role permissions)."""
+    query = GetUserEffectivePermissionsQuery(user_id=user_id)
+    permissions = await handler.handle(query)
+
+    permission_responses = [
+        {
+            "id": perm.id,
+            "name": perm.name,
+            "description": perm.description,
+            "created_at": perm.created_at.isoformat(),
+            "updated_at": perm.updated_at.isoformat(),
+        }
+        for perm in permissions
+    ]
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "success": True,
+            "message": "User permissions retrieved successfully",
+            "data": permission_responses,
+        },
+    )
+
+
+@router.post(
+    "/{user_id}/permissions",
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        404: {"model": NotFoundResponse, "description": "User or permission not found"},
+        409: {"model": ConflictResponse, "description": "Permission already assigned"},
+    },
+)
+async def assign_permission_to_user(
+    user_id: str,
+    request: AssignPermissionRequest,
+    handler: AssignPermissionToUserHandlerDep,
+) -> JSONResponse:
+    """Assign a direct permission to a user."""
+    command = AssignPermissionToUserCommand(
+        user_id=user_id,
+        permission_id=request.permission_id,
+    )
+    await handler.handle(command)
+
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content={
+            "success": True,
+            "message": "Permission assigned to user successfully",
+            "data": {
+                "user_id": user_id,
+                "permission_id": request.permission_id,
+            },
+        },
+    )
+
+
+@router.delete(
+    "/{user_id}/permissions/{permission_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        404: {"model": NotFoundResponse, "description": "Assignment not found"},
+    },
+)
+async def remove_permission_from_user(
+    user_id: str,
+    permission_id: str,
+    handler: RemovePermissionFromUserHandlerDep,
+) -> JSONResponse:
+    """Remove a direct permission from a user."""
+    command = RemovePermissionFromUserCommand(
+        user_id=user_id,
+        permission_id=permission_id,
+    )
     await handler.handle(command)
 
     return JSONResponse(

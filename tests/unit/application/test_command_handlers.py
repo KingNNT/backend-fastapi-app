@@ -161,7 +161,7 @@ class TestUpdateUserHandler:
         return UserAggregate.create(
             email=Email("existing@example.com"),
             username=Username("existinguser"),
-            password_hash="existing_hash",
+            password="existing_hash",
             full_name="Existing User",
         )
 
@@ -288,7 +288,7 @@ class TestDeleteUserHandler:
         return UserAggregate.create(
             email=Email("existing@example.com"),
             username=Username("existinguser"),
-            password_hash="existing_hash",
+            password="existing_hash",
         )
 
     @pytest.fixture
