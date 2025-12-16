@@ -27,13 +27,13 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hashed_password",
+            password="hashed_password",
             full_name="Test User",
         )
 
         assert aggregate.user.email_str == "test@example.com"
         assert aggregate.user.username_str == "testuser"
-        assert aggregate.user.password_hash == "hashed_password"
+        assert aggregate.user.password == "hashed_password"
         assert aggregate.user.full_name == "Test User"
         assert aggregate.user.is_active is True
 
@@ -42,7 +42,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
 
         events = aggregate.events
@@ -57,7 +57,7 @@ class TestUserAggregate:
             id=UserId.generate(),
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
 
         aggregate = UserAggregate.reconstitute(user)
@@ -70,7 +70,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
 
         assert isinstance(aggregate.id, UserId)
@@ -81,7 +81,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
 
         assert isinstance(aggregate.id_str, str)
@@ -92,7 +92,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
         assert len(aggregate.events) == 1
 
@@ -105,7 +105,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
 
         events1 = aggregate.events
@@ -119,7 +119,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("old@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
         aggregate.clear_events()
 
@@ -136,7 +136,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
         aggregate._user.is_active = False
 
@@ -150,13 +150,13 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="old_hash",
+            password="old_hash",
         )
         aggregate.clear_events()
 
         aggregate.update_password("new_hash")
 
-        assert aggregate.user.password_hash == "new_hash"
+        assert aggregate.user.password == "new_hash"
         assert len(aggregate.events) == 1
         assert isinstance(aggregate.events[0], UserPasswordUpdated)
 
@@ -165,7 +165,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
         aggregate._user.is_active = False
 
@@ -177,7 +177,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
             full_name="Old Name",
         )
         aggregate.clear_events()
@@ -197,7 +197,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
         aggregate.clear_events()
 
@@ -211,7 +211,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
         aggregate.clear_events()
 
@@ -224,7 +224,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
         aggregate._user.is_active = False
 
@@ -236,7 +236,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
         aggregate.clear_events()
 
@@ -252,7 +252,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
         aggregate._user.is_active = False
 
@@ -266,7 +266,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
         aggregate._user.is_active = False
         aggregate.clear_events()
@@ -282,7 +282,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
 
         with pytest.raises(InvalidUserState) as exc_info:
@@ -295,7 +295,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
         deleter_id = UUID("12345678-1234-5678-1234-567812345678")
         aggregate.clear_events()
@@ -312,7 +312,7 @@ class TestUserAggregate:
         aggregate = UserAggregate.create(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
         aggregate.clear_events()
 

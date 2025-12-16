@@ -5,6 +5,16 @@ from app.core.domain.repositories.log import (
     ILogRepository,
     ILogWriteRepository,
 )
+from app.core.domain.repositories.permission import (
+    IPermissionReadRepository,
+    IPermissionRepository,
+    IPermissionWriteRepository,
+)
+from app.core.domain.repositories.role import (
+    IRoleReadRepository,
+    IRoleRepository,
+    IRoleWriteRepository,
+)
 from app.core.domain.repositories.user import (
     IUserReadRepository,
     IUserRepository,
@@ -18,4 +28,10 @@ __all__ = [
     "ILogRepository",
     "ILogReadRepository",
     "ILogWriteRepository",
+    "IRoleRepository",
+    "IRoleReadRepository",
+    "IRoleWriteRepository",
+    "IPermissionRepository",
+    "IPermissionReadRepository",
+    "IPermissionWriteRepository",
 ]

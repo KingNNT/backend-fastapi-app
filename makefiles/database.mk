@@ -179,20 +179,45 @@ migrate-reset: ## Reset all migrations (WARNING: destroys data)
 	$(DOCKER_EXEC) poetry run alembic downgrade base
 
 # -----------------------------------------------------------------------------
-# Database Seeding (PostgreSQL)
+# Database Seeding (Typer CLI)
 # -----------------------------------------------------------------------------
+CLI_SEED := python -m app.infrastructure.cli.main db
+
 .PHONY: seed
-seed: ## Seed database with sample data
+seed: ## Seed database with sample data (usage: make seed [ENTITY=user|log|all] [COUNT=10])
 	@echo -e "$(GREEN)Seeding database with sample data...$(RESET)"
-	$(DOCKER_EXEC) python app/infrastructure/persistence/postgresql/seeds/seed_runner.py seed
+	$(DOCKER_EXEC) $(CLI_SEED) seed $(if $(ENTITY),-e $(ENTITY),) $(if $(COUNT),-c $(COUNT),) -v
 
 .PHONY: seed-clear
-seed-clear: ## Clear all seeded data
+seed-clear: ## Clear all seeded data (usage: make seed-clear [ENTITY=user|log|all])
 	@echo -e "$(YELLOW)Clearing all seeded data...$(RESET)"
-	$(DOCKER_EXEC) python app/infrastructure/persistence/postgresql/seeds/seed_runner.py clear
+	$(DOCKER_EXEC) $(CLI_SEED) clear $(if $(ENTITY),-e $(ENTITY),) -v -f
+
+.PHONY: seed-status
+seed-status: ## Show seeding status (record counts)
+	@echo -e "$(CYAN)Seeding status...$(RESET)"
+	$(DOCKER_EXEC) $(CLI_SEED) status
 
 .PHONY: reseed
 reseed: seed-clear seed ## Clear and reseed database
+
+.PHONY: seed-test
+seed-test: ## Seed test database (usage: make seed-test [ENTITY=user|log|all] [COUNT=10])
+	@echo -e "$(GREEN)Seeding test database...$(RESET)"
+	$(DOCKER_EXEC) $(CLI_SEED) seed --test-db $(if $(ENTITY),-e $(ENTITY),) $(if $(COUNT),-c $(COUNT),) -v
+
+.PHONY: seed-test-clear
+seed-test-clear: ## Clear test database seeded data (usage: make seed-test-clear [ENTITY=user|log|all])
+	@echo -e "$(YELLOW)Clearing test database seeded data...$(RESET)"
+	$(DOCKER_EXEC) $(CLI_SEED) clear --test-db $(if $(ENTITY),-e $(ENTITY),) -v -f
+
+.PHONY: seed-users
+seed-users: ## Seed only users (usage: make seed-users [COUNT=10])
+	$(DOCKER_EXEC) $(CLI_SEED) seed -e user $(if $(COUNT),-c $(COUNT),) -v
+
+.PHONY: seed-logs
+seed-logs: ## Seed only logs (usage: make seed-logs [COUNT=10])
+	$(DOCKER_EXEC) $(CLI_SEED) seed -e log $(if $(COUNT),-c $(COUNT),) -v
 
 # -----------------------------------------------------------------------------
 # Test Database Commands

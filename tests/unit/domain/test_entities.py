@@ -81,14 +81,14 @@ class TestUserEntity:
             id=user_id,
             email=email,
             username=username,
-            password_hash="hashed_password",
+            password="hashed_password",
             full_name="Test User",
         )
 
         assert user.id == user_id
         assert user.email == email
         assert user.username == username
-        assert user.password_hash == "hashed_password"
+        assert user.password == "hashed_password"
         assert user.full_name == "Test User"
         assert user.is_active is True
 
@@ -109,7 +109,7 @@ class TestUserEntity:
         user = User(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
         assert user.is_active is True
 
@@ -122,7 +122,7 @@ class TestUserEntity:
         user = User(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
             is_active=False,
         )
 
@@ -135,7 +135,7 @@ class TestUserEntity:
         user = User(
             email=Email("old@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
         new_email = Email("new@example.com")
 
@@ -149,19 +149,19 @@ class TestUserEntity:
         user = User(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="old_hash",
+            password="old_hash",
         )
 
         user.update_password("new_hash")
 
-        assert user.password_hash == "new_hash"
+        assert user.password == "new_hash"
 
     def test_user_update_profile(self):
         """Test updating user profile."""
         user = User(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
             full_name="Old Name",
         )
         new_username = Username("newuser")
@@ -176,7 +176,7 @@ class TestUserEntity:
         user = User(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
             full_name="Old Name",
         )
 
@@ -190,7 +190,7 @@ class TestUserEntity:
         user = User(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
 
         assert user.email_str == "test@example.com"
@@ -201,7 +201,7 @@ class TestUserEntity:
         user = User(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
 
         assert user.username_str == "testuser"
@@ -214,7 +214,7 @@ class TestUserEntity:
             id=user_id,
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
 
         assert user.id_str == str(user_id)
@@ -225,7 +225,7 @@ class TestUserEntity:
         user = User(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
 
         assert isinstance(user, BaseEntity)
@@ -238,7 +238,7 @@ class TestUserEntity:
         user = User(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
         deleter_id = UUID("12345678-1234-5678-1234-567812345678")
 
@@ -252,7 +252,7 @@ class TestUserEntity:
         user = User(
             email=Email("test@example.com"),
             username=Username("testuser"),
-            password_hash="hash",
+            password="hash",
         )
 
         assert user.full_name is None

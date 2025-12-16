@@ -28,7 +28,7 @@ class UserSeeder:
             UserModel(
                 email="john@example.com",
                 username="johndoe",
-                password_hash="hashed_password",
+                password="hashed_password",
                 full_name="John Doe",
                 is_active=True,
             ),

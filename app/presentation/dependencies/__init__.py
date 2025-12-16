@@ -1,17 +1,43 @@
 """Presentation layer dependencies."""
 
 from app.presentation.dependencies.handlers import (
+    # Assignment handler type aliases
+    AssignPermissionToRoleHandlerDep,
+    AssignPermissionToUserHandlerDep,
+    AssignRoleToUserHandlerDep,
+    # User handler type aliases
     CreateLogHandlerDep,
+    # Permission handler type aliases
+    CreatePermissionHandlerDep,
+    # Role handler type aliases
+    CreateRoleHandlerDep,
     CreateUserHandlerDep,
+    DeletePermissionHandlerDep,
+    DeleteRoleHandlerDep,
     DeleteUserHandlerDep,
     GetLogByIdHandlerDep,
+    GetPermissionByIdHandlerDep,
+    GetPermissionByNameHandlerDep,
+    GetRoleByIdHandlerDep,
+    GetRoleByNameHandlerDep,
+    GetRolePermissionsHandlerDep,
     GetUserByEmailHandlerDep,
     GetUserByIdHandlerDep,
     GetUserByUsernameHandlerDep,
+    GetUserEffectivePermissionsHandlerDep,
+    GetUserRolesHandlerDep,
     ListLogsByUserHandlerDep,
     ListLogsHandlerDep,
+    ListPermissionsHandlerDep,
+    ListRolesHandlerDep,
     ListUsersHandlerDep,
+    RemovePermissionFromRoleHandlerDep,
+    RemovePermissionFromUserHandlerDep,
+    RemoveRoleFromUserHandlerDep,
+    UpdatePermissionHandlerDep,
+    UpdateRoleHandlerDep,
     UpdateUserHandlerDep,
+    # Handler factory functions
     get_create_log_handler,
     get_create_user_handler,
     get_delete_user_handler,
@@ -70,7 +96,7 @@ __all__ = [
     "get_log_by_id_handler",
     "get_list_logs_handler",
     "get_list_logs_by_user_handler",
-    # Handler type aliases
+    # User handler type aliases
     "CreateUserHandlerDep",
     "UpdateUserHandlerDep",
     "DeleteUserHandlerDep",
@@ -82,4 +108,28 @@ __all__ = [
     "GetLogByIdHandlerDep",
     "ListLogsHandlerDep",
     "ListLogsByUserHandlerDep",
+    # Role handler type aliases
+    "CreateRoleHandlerDep",
+    "UpdateRoleHandlerDep",
+    "DeleteRoleHandlerDep",
+    "GetRoleByIdHandlerDep",
+    "GetRoleByNameHandlerDep",
+    "ListRolesHandlerDep",
+    # Permission handler type aliases
+    "CreatePermissionHandlerDep",
+    "UpdatePermissionHandlerDep",
+    "DeletePermissionHandlerDep",
+    "GetPermissionByIdHandlerDep",
+    "GetPermissionByNameHandlerDep",
+    "ListPermissionsHandlerDep",
+    # Assignment handler type aliases
+    "AssignRoleToUserHandlerDep",
+    "RemoveRoleFromUserHandlerDep",
+    "AssignPermissionToUserHandlerDep",
+    "RemovePermissionFromUserHandlerDep",
+    "AssignPermissionToRoleHandlerDep",
+    "RemovePermissionFromRoleHandlerDep",
+    "GetUserRolesHandlerDep",
+    "GetUserEffectivePermissionsHandlerDep",
+    "GetRolePermissionsHandlerDep",
 ]

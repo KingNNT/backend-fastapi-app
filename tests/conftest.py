@@ -46,7 +46,7 @@ def user_entity(valid_user_id, valid_email, valid_username) -> User:
         id=valid_user_id,
         email=valid_email,
         username=valid_username,
-        password_hash="hashed_password_123",
+        password="hashed_password_123",
         full_name="Test User",
         is_active=True,
     )
@@ -69,7 +69,7 @@ def new_user_aggregate() -> UserAggregate:
     return UserAggregate.create(
         email=Email("newuser@example.com"),
         username=Username("newuser"),
-        password_hash="hashed_password_456",
+        password="hashed_password_456",
         full_name="New User",
     )
 

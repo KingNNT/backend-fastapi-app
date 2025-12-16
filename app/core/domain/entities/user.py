@@ -19,7 +19,7 @@ class User(BaseEntity):
     id: UserId = field(default_factory=UserId.generate)
     email: Email = field(default_factory=lambda: Email("default@example.com"))
     username: Username = field(default_factory=lambda: Username("default_user"))
-    password_hash: str = ""
+    password: str = ""
     full_name: Optional[str] = None
     is_active: bool = True
 
@@ -47,9 +47,9 @@ class User(BaseEntity):
         self.email = new_email
         self.mark_updated()
 
-    def update_password(self, new_password_hash: str) -> None:
-        """Update user's password hash."""
-        self.password_hash = new_password_hash
+    def update_password(self, new_password: str) -> None:
+        """Update user's password."""
+        self.password = new_password
         self.mark_updated()
 
     def update_profile(

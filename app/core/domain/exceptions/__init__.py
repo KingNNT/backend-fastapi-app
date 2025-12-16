@@ -6,6 +6,14 @@ from app.core.domain.exceptions.base import (
     EntityNotFound,
 )
 from app.core.domain.exceptions.error_codes import ErrorCode
+from app.core.domain.exceptions.permission import (
+    PermissionAlreadyExists,
+    PermissionNotFound,
+)
+from app.core.domain.exceptions.role import (
+    RoleAlreadyExists,
+    RoleNotFound,
+)
 from app.core.domain.exceptions.user import (
     InvalidUserState,
     UserAlreadyExists,
@@ -26,4 +34,8 @@ __all__ = [
     "InvalidUserState",
     "ValidationError",
     "BusinessRuleViolation",
+    "RoleNotFound",
+    "RoleAlreadyExists",
+    "PermissionNotFound",
+    "PermissionAlreadyExists",
 ]

@@ -52,13 +52,13 @@ class CreateUserHandler:
         await self._domain_service.validate_new_user(email, username)
 
         # Hash password
-        password_hash = self._password_hasher.hash(command.password)
+        hashed_password = self._password_hasher.hash(command.password)
 
         # Create aggregate
         aggregate = UserAggregate.create(
             email=email,
             username=username,
-            password_hash=password_hash,
+            password=hashed_password,
             full_name=command.full_name,
         )
 
@@ -118,8 +118,8 @@ class UpdateUserHandler:
 
         # Update password if provided
         if command.password is not None:
-            password_hash = self._password_hasher.hash(command.password)
-            aggregate.update_password(password_hash)
+            hashed_password = self._password_hasher.hash(command.password)
+            aggregate.update_password(hashed_password)
 
         # Persist
         await self._repository.save(aggregate)

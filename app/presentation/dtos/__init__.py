@@ -5,6 +5,12 @@ from app.presentation.dtos.log import (
     LogListResponse,
     LogResponse,
 )
+from app.presentation.dtos.permission import (
+    PermissionCreateRequest,
+    PermissionListResponse,
+    PermissionResponse,
+    PermissionUpdateRequest,
+)
 from app.presentation.dtos.response import (
     BadRequestResponse,
     ConflictResponse,
@@ -13,6 +19,13 @@ from app.presentation.dtos.response import (
     NotFoundResponse,
     SuccessResponse,
     ValidationErrorResponse,
+)
+from app.presentation.dtos.role import (
+    AssignPermissionRequest,
+    RoleCreateRequest,
+    RoleListResponse,
+    RoleResponse,
+    RoleUpdateRequest,
 )
 from app.presentation.dtos.system import (
     HealthCheckResponse,
@@ -26,24 +39,35 @@ from app.presentation.dtos.user import (
 )
 
 __all__ = [
-    # User DTOs
-    "UserCreateRequest",
-    "UserUpdateRequest",
-    "UserResponse",
-    "UserListResponse",
     # Log DTOs
     "LogCreateRequest",
-    "LogResponse",
     "LogListResponse",
+    "LogResponse",
+    # Permission DTOs
+    "PermissionCreateRequest",
+    "PermissionListResponse",
+    "PermissionResponse",
+    "PermissionUpdateRequest",
+    # Response DTOs
+    "BadRequestResponse",
+    "ConflictResponse",
+    "CreatedResponse",
+    "ErrorResponse",
+    "NotFoundResponse",
+    "SuccessResponse",
+    "ValidationErrorResponse",
+    # Role DTOs
+    "AssignPermissionRequest",
+    "RoleCreateRequest",
+    "RoleListResponse",
+    "RoleResponse",
+    "RoleUpdateRequest",
     # System DTOs
     "HealthCheckResponse",
     "VersionResponse",
-    # Response DTOs
-    "SuccessResponse",
-    "ErrorResponse",
-    "CreatedResponse",
-    "NotFoundResponse",
-    "ConflictResponse",
-    "ValidationErrorResponse",
-    "BadRequestResponse",
+    # User DTOs
+    "UserCreateRequest",
+    "UserListResponse",
+    "UserResponse",
+    "UserUpdateRequest",
 ]
