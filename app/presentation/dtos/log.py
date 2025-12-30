@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class LogCreateRequest(BaseModel):
@@ -17,14 +17,13 @@ class LogCreateRequest(BaseModel):
 class LogResponse(BaseModel):
     """Response DTO for log data."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     id: str = Field(..., description="Log ID")
     action: str = Field(..., description="Action type")
     user_id: Optional[str] = Field(None, description="User ID")
     timestamp: datetime = Field(..., description="Log timestamp")
     metadata: dict[str, Any] = Field(default_factory=dict, description="Log metadata")
-
-    class Config:
-        from_attributes = True
 
 
 class LogListResponse(BaseModel):

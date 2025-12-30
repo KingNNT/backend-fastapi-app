@@ -14,14 +14,15 @@ from testcontainers.postgres import PostgresContainer
 from app.infrastructure.persistence.mongodb.models.log import LogModel
 from app.infrastructure.persistence.postgresql.models.user import UserModel
 
-# Skip all integration tests if Docker is not available
+# Mark all integration tests
 pytestmark = pytest.mark.integration
 
 
 @pytest.fixture(scope="session")
 def event_loop():
-    """Create event loop for async tests."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
+    """Create session-scoped event loop for async fixtures."""
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
     yield loop
     loop.close()
 
@@ -44,8 +45,11 @@ def mongodb_container():
 async def postgres_engine(postgres_container):
     """Create async PostgreSQL engine."""
     connection_url = postgres_container.get_connection_url()
-    # Convert to asyncpg URL format
-    async_url = connection_url.replace("postgresql://", "postgresql+asyncpg://")
+    # Convert to asyncpg URL format (handle both postgresql:// and postgresql+psycopg2://)
+    async_url = connection_url.replace(
+        "postgresql+psycopg2://", "postgresql+asyncpg://"
+    )
+    async_url = async_url.replace("postgresql://", "postgresql+asyncpg://")
 
     engine = create_async_engine(
         async_url,

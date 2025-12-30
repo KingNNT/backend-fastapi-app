@@ -39,12 +39,12 @@ test-e2e: ## Run E2E tests (uses test databases)
 .PHONY: test-all
 test-all: ## Run all tests (unit + integration + e2e)
 	@echo -e "$(GREEN)Running all tests...$(RESET)"
-	$(DOCKER_EXEC) poetry run pytest tests/ -v
+	$(DOCKER_EXEC) poetry run pytest tests/unit/ tests/e2e/ tests/integration/ -v
 
 .PHONY: test-all-cov
 test-all-cov: ## Run all tests with coverage
 	@echo -e "$(GREEN)Running all tests with coverage...$(RESET)"
-	$(DOCKER_EXEC) poetry run pytest tests/ --cov=app --cov-report=term-missing --cov-report=html
+	$(DOCKER_EXEC) poetry run pytest tests/unit/ tests/e2e/ tests/integration/ --cov=app --cov-report=term-missing --cov-report=html
 
 # -----------------------------------------------------------------------------
 # Selective Testing

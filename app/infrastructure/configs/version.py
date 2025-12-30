@@ -1,17 +1,16 @@
 import importlib.metadata
 from functools import lru_cache
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class VersionInfo(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     version: str
     build_date: str | None = None
     commit_hash: str | None = None
     python_version: str
-
-    class Config:
-        frozen = True
 
 
 @lru_cache()

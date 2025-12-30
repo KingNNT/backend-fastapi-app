@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class RoleCreateRequest(BaseModel):
@@ -29,14 +29,13 @@ class RoleUpdateRequest(BaseModel):
 class RoleResponse(BaseModel):
     """Response DTO for role data."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     id: str = Field(..., description="Role ID (UUID)")
     name: str = Field(..., description="Role name")
     description: Optional[str] = Field(None, description="Role description")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
-
-    class Config:
-        from_attributes = True
 
 
 class RoleListResponse(BaseModel):

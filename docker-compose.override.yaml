@@ -25,6 +25,8 @@ services:
       - .:/app
       # Prevent overwriting container's installed packages
       - /app/.venv
+      # Mount Docker socket for testcontainers integration tests
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - ENVIRONMENT=development
       - DEBUG=true

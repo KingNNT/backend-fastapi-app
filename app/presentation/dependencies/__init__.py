@@ -51,14 +51,17 @@ from app.presentation.dependencies.handlers import (
     get_user_by_username_handler,
 )
 from app.presentation.dependencies.repositories import (
+    get_assignment_repository,
     get_log_read_model_repository,
     get_log_repository,
+    get_permission_read_model_repository,
+    get_permission_repository,
+    get_role_read_model_repository,
+    get_role_repository,
     get_user_read_model_repository,
     get_user_repository,
     set_log_read_model_repository,
     set_log_repository,
-    set_user_read_model_repository,
-    set_user_repository,
 )
 from app.presentation.dependencies.services import (
     get_event_bus,
@@ -69,14 +72,18 @@ from app.presentation.dependencies.services import (
 )
 
 __all__ = [
-    # Repository providers
+    # Repository providers (PostgreSQL - request-scoped)
     "get_user_repository",
-    "get_log_repository",
     "get_user_read_model_repository",
+    "get_role_repository",
+    "get_role_read_model_repository",
+    "get_permission_repository",
+    "get_permission_read_model_repository",
+    "get_assignment_repository",
+    # Repository providers (MongoDB - app-scoped)
+    "get_log_repository",
     "get_log_read_model_repository",
-    "set_user_repository",
     "set_log_repository",
-    "set_user_read_model_repository",
     "set_log_read_model_repository",
     # Service providers
     "get_event_bus",

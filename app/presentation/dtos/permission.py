@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PermissionCreateRequest(BaseModel):
@@ -34,14 +34,13 @@ class PermissionUpdateRequest(BaseModel):
 class PermissionResponse(BaseModel):
     """Response DTO for permission data."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     id: str = Field(..., description="Permission ID (UUID)")
     name: str = Field(..., description="Permission name")
     description: Optional[str] = Field(None, description="Permission description")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
-
-    class Config:
-        from_attributes = True
 
 
 class PermissionListResponse(BaseModel):

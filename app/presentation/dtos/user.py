@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserCreateRequest(BaseModel):
@@ -29,6 +29,8 @@ class UserUpdateRequest(BaseModel):
 class UserResponse(BaseModel):
     """Response DTO for user data."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     id: str = Field(..., description="User ID (UUID)")
     email: str = Field(..., description="User email address")
     username: str = Field(..., description="Username")
@@ -36,9 +38,6 @@ class UserResponse(BaseModel):
     is_active: bool = Field(..., description="User active status")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
-
-    class Config:
-        from_attributes = True
 
 
 class UserListResponse(BaseModel):

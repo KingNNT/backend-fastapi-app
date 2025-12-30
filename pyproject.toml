@@ -60,3 +60,11 @@ markers = [
     "integration: marks tests as integration tests (require Docker)",
     "e2e: marks tests as end-to-end tests (require running Docker services)",
 ]
+filterwarnings = [
+    # Ignore testcontainers deprecation warnings (external library)
+    "ignore::DeprecationWarning:testcontainers.*",
+    # Ignore lazy_model/Pydantic model_fields warnings (Beanie ODM dependency)
+    "ignore:Accessing the 'model_fields' attribute:pydantic.warnings.PydanticDeprecatedSince211",
+    # Ignore pytest-asyncio event_loop fixture redefinition warning (needed for session-scoped fixtures)
+    "ignore:The event_loop fixture provided by pytest-asyncio:DeprecationWarning",
+]
