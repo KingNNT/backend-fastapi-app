@@ -40,7 +40,9 @@ class TestUserEventHandlers:
     @pytest.fixture
     def create_log_handler(self, log_write_repo):
         """Create log handler with real repository."""
-        return CreateLogHandler(repository=log_write_repo)
+        # Use a separate event bus for the log handler (it publishes LogCreated events)
+        log_event_bus = InMemoryEventBus()
+        return CreateLogHandler(repository=log_write_repo, event_bus=log_event_bus)
 
     @pytest.fixture
     def user_event_handler(self, create_log_handler):
@@ -186,7 +188,9 @@ class TestEventBusIntegration:
     @pytest.fixture
     def create_log_handler(self, log_write_repo):
         """Create log handler with real repository."""
-        return CreateLogHandler(repository=log_write_repo)
+        # Use a separate event bus for the log handler (it publishes LogCreated events)
+        log_event_bus = InMemoryEventBus()
+        return CreateLogHandler(repository=log_write_repo, event_bus=log_event_bus)
 
     @pytest.fixture
     def user_event_handler(self, create_log_handler):

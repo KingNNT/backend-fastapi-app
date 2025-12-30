@@ -3,6 +3,11 @@
 from app.infrastructure.persistence.postgresql.repositories.assignment_repository import (  # noqa: E501
     AssignmentRepository,
 )
+from app.infrastructure.persistence.postgresql.repositories.combined import (
+    CombinedPermissionRepository,
+    CombinedRoleRepository,
+    CombinedUserRepository,
+)
 from app.infrastructure.persistence.postgresql.repositories.permission_read import (
     PostgresPermissionReadModelRepository,
     PostgresPermissionReadRepository,
@@ -27,6 +32,9 @@ from app.infrastructure.persistence.postgresql.repositories.user_write import (
 
 __all__ = [
     "AssignmentRepository",
+    "CombinedPermissionRepository",
+    "CombinedRoleRepository",
+    "CombinedUserRepository",
     "PostgresPermissionReadModelRepository",
     "PostgresPermissionReadRepository",
     "PostgresPermissionWriteRepository",

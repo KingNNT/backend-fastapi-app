@@ -22,7 +22,7 @@ from app.infrastructure.persistence.mongodb.database import mongo_db_manager
 from app.infrastructure.persistence.mongodb.models.log import LogModel
 from app.infrastructure.persistence.postgresql.database import postgres_db_manager
 from app.infrastructure.persistence.postgresql.models import UserModel
-from app.infrastructure.setup import setup_dependencies
+from app.infrastructure.setup import setup_app_services
 from app.infrastructure.web import register_exception_handlers
 from app.presentation.api import api_router
 
@@ -32,8 +32,9 @@ pytestmark = pytest.mark.e2e
 
 @pytest.fixture(scope="session")
 def event_loop():
-    """Create event loop for async tests."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
+    """Create session-scoped event loop for async fixtures."""
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
     yield loop
     loop.close()
 
@@ -54,6 +55,9 @@ async def setup_test_databases():
         async with postgres_db_manager.engine.begin() as conn:
             await conn.run_sync(SQLModel.metadata.create_all)
 
+    # Set up app-scoped services (event bus, password hasher, MongoDB repos)
+    setup_app_services()
+
     yield
 
     # Cleanup: close connections
@@ -63,18 +67,16 @@ async def setup_test_databases():
 
 @pytest.fixture(scope="session")
 async def test_app(setup_test_databases) -> AsyncGenerator[FastAPI, None]:
-    """Create test FastAPI application with real test databases."""
+    """Create test FastAPI application with real test databases.
+
+    PostgreSQL repositories are request-scoped via Depends(get_postgres_session),
+    so they automatically use the test database connection.
+    """
     app = FastAPI()
     register_exception_handlers(app)
     app.include_router(api_router)
 
-    # Setup dependencies with test database session
-    if postgres_db_manager.session_maker is None:
-        raise RuntimeError("PostgreSQL session maker is not initialized")
-
-    async with postgres_db_manager.session_maker() as session:
-        setup_dependencies(session)
-        yield app
+    yield app
 
 
 @pytest.fixture
