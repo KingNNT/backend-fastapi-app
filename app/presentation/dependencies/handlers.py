@@ -45,59 +45,45 @@ from app.presentation.dependencies.repositories import (
     get_log_read_model_repository,
     get_log_repository,
     get_permission_read_model_repository,
-    get_permission_repository,
     get_role_read_model_repository,
-    get_role_repository,
     get_user_read_model_repository,
-    get_user_repository,
 )
 from app.presentation.dependencies.services import (
     get_event_bus,
     get_password_hasher,
-    get_user_domain_service,
 )
 
 
 # User Command Handlers
 def get_create_user_handler(
-    repository=Depends(get_user_repository),
-    domain_service=Depends(get_user_domain_service),
-    event_bus=Depends(get_event_bus),
     password_hasher=Depends(get_password_hasher),
 ) -> CreateUserHandler:
-    """Get CreateUserHandler instance."""
-    return CreateUserHandler(
-        repository=repository,
-        domain_service=domain_service,
-        event_bus=event_bus,
-        password_hasher=password_hasher,
-    )
+    """Get CreateUserHandler instance.
+
+    Handler receives UoW as parameter to handle() method.
+    Repositories are accessed via UoW properties.
+    """
+    return CreateUserHandler(password_hasher=password_hasher)
 
 
 def get_update_user_handler(
-    repository=Depends(get_user_repository),
-    domain_service=Depends(get_user_domain_service),
-    event_bus=Depends(get_event_bus),
     password_hasher=Depends(get_password_hasher),
 ) -> UpdateUserHandler:
-    """Get UpdateUserHandler instance."""
-    return UpdateUserHandler(
-        repository=repository,
-        domain_service=domain_service,
-        event_bus=event_bus,
-        password_hasher=password_hasher,
-    )
+    """Get UpdateUserHandler instance.
+
+    Handler receives UoW as parameter to handle() method.
+    Repositories are accessed via UoW properties.
+    """
+    return UpdateUserHandler(password_hasher=password_hasher)
 
 
-def get_delete_user_handler(
-    repository=Depends(get_user_repository),
-    event_bus=Depends(get_event_bus),
-) -> DeleteUserHandler:
-    """Get DeleteUserHandler instance."""
-    return DeleteUserHandler(
-        repository=repository,
-        event_bus=event_bus,
-    )
+def get_delete_user_handler() -> DeleteUserHandler:
+    """Get DeleteUserHandler instance.
+
+    Handler receives UoW as parameter to handle() method.
+    Repositories are accessed via UoW properties.
+    """
+    return DeleteUserHandler()
 
 
 # User Query Handlers
@@ -164,28 +150,31 @@ def get_list_logs_by_user_handler(
 
 
 # Role Command Handlers
-def get_create_role_handler(
-    repository=Depends(get_role_repository),
-    event_bus=Depends(get_event_bus),
-) -> CreateRoleHandler:
-    """Get CreateRoleHandler instance."""
-    return CreateRoleHandler(repository=repository, event_bus=event_bus)
+def get_create_role_handler() -> CreateRoleHandler:
+    """Get CreateRoleHandler instance.
+
+    Handler receives UoW as parameter to handle() method.
+    Repositories are accessed via UoW properties.
+    """
+    return CreateRoleHandler()
 
 
-def get_update_role_handler(
-    repository=Depends(get_role_repository),
-    event_bus=Depends(get_event_bus),
-) -> UpdateRoleHandler:
-    """Get UpdateRoleHandler instance."""
-    return UpdateRoleHandler(repository=repository, event_bus=event_bus)
+def get_update_role_handler() -> UpdateRoleHandler:
+    """Get UpdateRoleHandler instance.
+
+    Handler receives UoW as parameter to handle() method.
+    Repositories are accessed via UoW properties.
+    """
+    return UpdateRoleHandler()
 
 
-def get_delete_role_handler(
-    repository=Depends(get_role_repository),
-    event_bus=Depends(get_event_bus),
-) -> DeleteRoleHandler:
-    """Get DeleteRoleHandler instance."""
-    return DeleteRoleHandler(repository=repository, event_bus=event_bus)
+def get_delete_role_handler() -> DeleteRoleHandler:
+    """Get DeleteRoleHandler instance.
+
+    Handler receives UoW as parameter to handle() method.
+    Repositories are accessed via UoW properties.
+    """
+    return DeleteRoleHandler()
 
 
 # Role Query Handlers
@@ -211,28 +200,31 @@ def get_list_roles_handler(
 
 
 # Permission Command Handlers
-def get_create_permission_handler(
-    repository=Depends(get_permission_repository),
-    event_bus=Depends(get_event_bus),
-) -> CreatePermissionHandler:
-    """Get CreatePermissionHandler instance."""
-    return CreatePermissionHandler(repository=repository, event_bus=event_bus)
+def get_create_permission_handler() -> CreatePermissionHandler:
+    """Get CreatePermissionHandler instance.
+
+    Handler receives UoW as parameter to handle() method.
+    Repositories are accessed via UoW properties.
+    """
+    return CreatePermissionHandler()
 
 
-def get_update_permission_handler(
-    repository=Depends(get_permission_repository),
-    event_bus=Depends(get_event_bus),
-) -> UpdatePermissionHandler:
-    """Get UpdatePermissionHandler instance."""
-    return UpdatePermissionHandler(repository=repository, event_bus=event_bus)
+def get_update_permission_handler() -> UpdatePermissionHandler:
+    """Get UpdatePermissionHandler instance.
+
+    Handler receives UoW as parameter to handle() method.
+    Repositories are accessed via UoW properties.
+    """
+    return UpdatePermissionHandler()
 
 
-def get_delete_permission_handler(
-    repository=Depends(get_permission_repository),
-    event_bus=Depends(get_event_bus),
-) -> DeletePermissionHandler:
-    """Get DeletePermissionHandler instance."""
-    return DeletePermissionHandler(repository=repository, event_bus=event_bus)
+def get_delete_permission_handler() -> DeletePermissionHandler:
+    """Get DeletePermissionHandler instance.
+
+    Handler receives UoW as parameter to handle() method.
+    Repositories are accessed via UoW properties.
+    """
+    return DeletePermissionHandler()
 
 
 # Permission Query Handlers

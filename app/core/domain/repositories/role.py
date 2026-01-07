@@ -52,12 +52,3 @@ class IRoleReadRepository(Protocol):
     async def count(self, include_deleted: bool = False) -> int:
         """Count total roles."""
         ...
-
-
-class IRoleRepository(IRoleWriteRepository, IRoleReadRepository, Protocol):
-    """
-    Combined repository interface for role operations.
-    Use this when you need both read and write access.
-    """
-
-    pass

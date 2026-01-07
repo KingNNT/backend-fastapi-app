@@ -30,6 +30,7 @@ from app.presentation.dependencies.handlers import (
     RemovePermissionFromRoleHandlerDep,
     UpdateRoleHandlerDep,
 )
+from app.presentation.dependencies.repositories import UnitOfWorkDep
 from app.presentation.dtos import (
     AssignPermissionRequest,
     BadRequestResponse,
@@ -60,13 +61,14 @@ router = APIRouter(prefix="/roles", tags=["Roles"])
 async def create_role(
     request: RoleCreateRequest,
     handler: CreateRoleHandlerDep,
+    uow: UnitOfWorkDep,
 ) -> JSONResponse:
     """Create a new role."""
     command = CreateRoleCommand(
         name=request.name,
         description=request.description,
     )
-    role_id = await handler.handle(command)
+    role_id = await handler.handle(command, uow)
     return JSONResponse(
         status_code=status.HTTP_201_CREATED,
         content={
@@ -209,6 +211,7 @@ async def update_role(
     role_id: str,
     request: RoleUpdateRequest,
     handler: UpdateRoleHandlerDep,
+    uow: UnitOfWorkDep,
 ) -> JSONResponse:
     """Update a role."""
     command = UpdateRoleCommand(
@@ -216,7 +219,7 @@ async def update_role(
         name=request.name,
         description=request.description,
     )
-    await handler.handle(command)
+    await handler.handle(command, uow)
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
@@ -238,10 +241,11 @@ async def update_role(
 async def delete_role(
     role_id: str,
     handler: DeleteRoleHandlerDep,
+    uow: UnitOfWorkDep,
 ) -> JSONResponse:
     """Delete a role (soft delete)."""
     command = DeleteRoleCommand(role_id=role_id)
-    await handler.handle(command)
+    await handler.handle(command, uow)
 
     return JSONResponse(
         status_code=status.HTTP_204_NO_CONTENT,

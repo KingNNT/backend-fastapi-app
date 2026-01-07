@@ -54,14 +54,3 @@ class IPermissionReadRepository(Protocol):
     async def count(self, include_deleted: bool = False) -> int:
         """Count total permissions."""
         ...
-
-
-class IPermissionRepository(
-    IPermissionWriteRepository, IPermissionReadRepository, Protocol
-):
-    """
-    Combined repository interface for permission operations.
-    Use this when you need both read and write access.
-    """
-
-    pass

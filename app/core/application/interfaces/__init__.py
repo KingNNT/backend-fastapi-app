@@ -11,6 +11,7 @@ from app.core.application.interfaces.query_bus import (
     IQueryBus,
     IQueryHandler,
 )
+from app.core.application.interfaces.unit_of_work import IUnitOfWork
 
 __all__ = [
     "IEventBus",
@@ -20,4 +21,5 @@ __all__ = [
     "IQuery",
     "IQueryHandler",
     "IQueryBus",
+    "IUnitOfWork",
 ]

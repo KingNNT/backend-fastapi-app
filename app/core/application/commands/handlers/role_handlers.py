@@ -5,33 +5,42 @@ from uuid import UUID
 from app.core.application.commands.role.create_role import CreateRoleCommand
 from app.core.application.commands.role.delete_role import DeleteRoleCommand
 from app.core.application.commands.role.update_role import UpdateRoleCommand
-from app.core.application.interfaces.event_bus import IEventBus
+from app.core.application.interfaces import IUnitOfWork
 from app.core.domain.aggregates.role import RoleAggregate
-from app.core.domain.exceptions.role import RoleAlreadyExists, RoleNotFound
-from app.core.domain.repositories.role import IRoleRepository
+from app.core.domain.exceptions.role import RoleNotFound
+from app.core.domain.services import RoleDomainService
 from app.core.domain.value_objects.role_id import RoleId
 from app.core.domain.value_objects.role_name import RoleName
 
 
 class CreateRoleHandler:
-    """Handler for CreateRoleCommand."""
+    """Handler for CreateRoleCommand.
 
-    def __init__(
-        self,
-        repository: IRoleRepository,
-        event_bus: IEventBus,
-    ) -> None:
-        self._repository = repository
-        self._event_bus = event_bus
+    Uses Unit of Work for transaction management and repository access.
+    Delegates domain validation to RoleDomainService.
+    """
 
-    async def handle(self, command: CreateRoleCommand) -> str:
-        """Execute the create role command and return role ID."""
+    def __init__(self) -> None:
+        """Initialize handler (no dependencies needed)."""
+        pass
+
+    async def handle(self, command: CreateRoleCommand, uow: IUnitOfWork) -> str:
+        """Execute the create role command and return role ID.
+
+        Args:
+            command: The create role command containing role data.
+            uow: Unit of Work for transaction management.
+
+        Returns:
+            The created role's ID as string.
+
+        Raises:
+            RoleAlreadyExists: If role name already exists.
+        """
         name = RoleName(command.name)
 
-        # Check if role with same name already exists
-        existing = await self._repository.get_by_name(name)
-        if existing is not None:
-            raise RoleAlreadyExists(command.name)
+        # Validate uniqueness via domain service
+        await RoleDomainService.validate_new_role(name, uow.roles_read)
 
         # Create aggregate
         aggregate = RoleAggregate.create(
@@ -39,76 +48,98 @@ class CreateRoleHandler:
             description=command.description,
         )
 
-        # Persist
-        await self._repository.save(aggregate)
+        # Persist via UoW
+        await uow.roles.save(aggregate)
 
-        # Publish domain events
-        for event in aggregate.events:
-            await self._event_bus.publish(event)
-        aggregate.clear_events()
+        # Collect events (will be published after commit)
+        uow.collect_events(aggregate)
 
         return aggregate.id_str
 
 
 class UpdateRoleHandler:
-    """Handler for UpdateRoleCommand."""
+    """Handler for UpdateRoleCommand.
 
-    def __init__(
-        self,
-        repository: IRoleRepository,
-        event_bus: IEventBus,
-    ) -> None:
-        self._repository = repository
-        self._event_bus = event_bus
+    Uses Unit of Work for transaction management and repository access.
+    Delegates domain validation to RoleDomainService.
+    """
 
-    async def handle(self, command: UpdateRoleCommand) -> str:
-        """Execute the update role command and return role ID."""
+    def __init__(self) -> None:
+        """Initialize handler (no dependencies needed)."""
+        pass
+
+    async def handle(self, command: UpdateRoleCommand, uow: IUnitOfWork) -> str:
+        """Execute the update role command and return role ID.
+
+        Args:
+            command: The update role command containing update data.
+            uow: Unit of Work for transaction management.
+
+        Returns:
+            The updated role's ID as string.
+
+        Raises:
+            RoleNotFound: If role doesn't exist.
+            RoleAlreadyExists: If new name already taken.
+        """
         # Get existing role
         role_id = RoleId.from_string(command.role_id)
-        aggregate = await self._repository.get_by_id(role_id)
+        aggregate = await uow.roles_read.get_by_id(role_id)
         if aggregate is None:
             raise RoleNotFound(command.role_id)
 
-        # Update name if provided
-        if command.name is not None:
-            new_name = RoleName(command.name)
-            # Check uniqueness (exclude current role)
-            existing = await self._repository.get_by_name(new_name)
-            if existing is not None and existing.id_str != command.role_id:
-                raise RoleAlreadyExists(command.name)
+        # Parse new name if provided
+        new_name = RoleName(command.name) if command.name else None
+
+        # Validate uniqueness via domain service
+        await RoleDomainService.validate_role_update(
+            role_id=command.role_id,
+            role_read_repo=uow.roles_read,
+            name=new_name,
+        )
+
+        # Apply updates
+        if new_name is not None:
             aggregate.update_name(new_name)
 
-        # Update description if provided
         if command.description is not None:
             aggregate.update_description(command.description)
 
-        # Persist
-        await self._repository.save(aggregate)
+        # Persist via UoW
+        await uow.roles.save(aggregate)
 
-        # Publish domain events
-        for event in aggregate.events:
-            await self._event_bus.publish(event)
-        aggregate.clear_events()
+        # Collect events (will be published after commit)
+        uow.collect_events(aggregate)
 
         return aggregate.id_str
 
 
 class DeleteRoleHandler:
-    """Handler for DeleteRoleCommand."""
+    """Handler for DeleteRoleCommand.
 
-    def __init__(
-        self,
-        repository: IRoleRepository,
-        event_bus: IEventBus,
-    ) -> None:
-        self._repository = repository
-        self._event_bus = event_bus
+    Uses Unit of Work for transaction management and repository access.
+    """
 
-    async def handle(self, command: DeleteRoleCommand) -> bool:
-        """Execute the delete role command."""
+    def __init__(self) -> None:
+        """Initialize handler (no dependencies needed)."""
+        pass
+
+    async def handle(self, command: DeleteRoleCommand, uow: IUnitOfWork) -> bool:
+        """Execute the delete role command.
+
+        Args:
+            command: The delete role command.
+            uow: Unit of Work for transaction management.
+
+        Returns:
+            True if deletion was successful.
+
+        Raises:
+            RoleNotFound: If role doesn't exist.
+        """
         # Get existing role
         role_id = RoleId.from_string(command.role_id)
-        aggregate = await self._repository.get_by_id(role_id)
+        aggregate = await uow.roles_read.get_by_id(role_id)
         if aggregate is None:
             raise RoleNotFound(command.role_id)
 
@@ -116,12 +147,10 @@ class DeleteRoleHandler:
         deleted_by = UUID(command.deleted_by) if command.deleted_by else None
         aggregate.soft_delete(deleted_by=deleted_by)
 
-        # Persist
-        await self._repository.save(aggregate)
+        # Persist via UoW
+        await uow.roles.save(aggregate)
 
-        # Publish domain events
-        for event in aggregate.events:
-            await self._event_bus.publish(event)
-        aggregate.clear_events()
+        # Collect events (will be published after commit)
+        uow.collect_events(aggregate)
 
         return True

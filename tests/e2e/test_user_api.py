@@ -1,7 +1,7 @@
 """E2E tests for User API endpoints."""
 
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import FastAPI
@@ -20,6 +20,18 @@ from app.presentation.dependencies import (
     get_user_by_id_handler,
     get_user_by_username_handler,
 )
+from app.presentation.dependencies.repositories import get_unit_of_work
+
+
+def create_mock_uow():
+    """Create a mock Unit of Work for tests."""
+    mock = AsyncMock()
+    mock.__aenter__ = AsyncMock(return_value=mock)
+    mock.__aexit__ = AsyncMock(return_value=None)
+    mock.commit = AsyncMock(return_value=None)
+    mock.rollback = AsyncMock(return_value=None)
+    mock.collect_events = MagicMock(return_value=None)
+    return mock
 
 
 @pytest.fixture
@@ -77,6 +89,7 @@ class TestCreateUserEndpoint:
         )
 
         app.dependency_overrides[get_create_user_handler] = lambda: mock_handler
+        app.dependency_overrides[get_unit_of_work] = create_mock_uow
         client = TestClient(app)
 
         response = client.post(
@@ -104,6 +117,7 @@ class TestCreateUserEndpoint:
         )
 
         app.dependency_overrides[get_create_user_handler] = lambda: mock_handler
+        app.dependency_overrides[get_unit_of_work] = create_mock_uow
         client = TestClient(app)
 
         response = client.post(
@@ -126,6 +140,7 @@ class TestCreateUserEndpoint:
         mock_handler = AsyncMock()
 
         app.dependency_overrides[get_create_user_handler] = lambda: mock_handler
+        app.dependency_overrides[get_unit_of_work] = create_mock_uow
         client = TestClient(app)
 
         response = client.post(
@@ -317,6 +332,7 @@ class TestUpdateUserEndpoint:
         )
 
         app.dependency_overrides[get_update_user_handler] = lambda: mock_handler
+        app.dependency_overrides[get_unit_of_work] = create_mock_uow
         client = TestClient(app)
 
         response = client.put(
@@ -342,6 +358,7 @@ class TestUpdateUserEndpoint:
         )
 
         app.dependency_overrides[get_update_user_handler] = lambda: mock_handler
+        app.dependency_overrides[get_unit_of_work] = create_mock_uow
         client = TestClient(app)
 
         response = client.put(
@@ -363,6 +380,7 @@ class TestUpdateUserEndpoint:
         )
 
         app.dependency_overrides[get_update_user_handler] = lambda: mock_handler
+        app.dependency_overrides[get_unit_of_work] = create_mock_uow
         client = TestClient(app)
 
         response = client.put(
@@ -386,6 +404,7 @@ class TestDeleteUserEndpoint:
         mock_handler.handle = AsyncMock(return_value=True)
 
         app.dependency_overrides[get_delete_user_handler] = lambda: mock_handler
+        app.dependency_overrides[get_unit_of_work] = create_mock_uow
         client = TestClient(app)
 
         response = client.delete("/v1/users/12345678-1234-5678-1234-567812345678")
@@ -402,6 +421,7 @@ class TestDeleteUserEndpoint:
         )
 
         app.dependency_overrides[get_delete_user_handler] = lambda: mock_handler
+        app.dependency_overrides[get_unit_of_work] = create_mock_uow
         client = TestClient(app)
 
         response = client.delete("/v1/users/00000000-0000-0000-0000-000000000000")

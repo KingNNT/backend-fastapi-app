@@ -22,6 +22,7 @@ from app.presentation.dependencies.handlers import (
     ListPermissionsHandlerDep,
     UpdatePermissionHandlerDep,
 )
+from app.presentation.dependencies.repositories import UnitOfWorkDep
 from app.presentation.dtos import (
     BadRequestResponse,
     ConflictResponse,
@@ -51,13 +52,14 @@ router = APIRouter(prefix="/permissions", tags=["Permissions"])
 async def create_permission(
     request: PermissionCreateRequest,
     handler: CreatePermissionHandlerDep,
+    uow: UnitOfWorkDep,
 ) -> JSONResponse:
     """Create a new permission."""
     command = CreatePermissionCommand(
         name=request.name,
         description=request.description,
     )
-    permission_id = await handler.handle(command)
+    permission_id = await handler.handle(command, uow)
     return JSONResponse(
         status_code=status.HTTP_201_CREATED,
         content={
@@ -203,6 +205,7 @@ async def update_permission(
     permission_id: str,
     request: PermissionUpdateRequest,
     handler: UpdatePermissionHandlerDep,
+    uow: UnitOfWorkDep,
 ) -> JSONResponse:
     """Update a permission."""
     command = UpdatePermissionCommand(
@@ -210,7 +213,7 @@ async def update_permission(
         name=request.name,
         description=request.description,
     )
-    await handler.handle(command)
+    await handler.handle(command, uow)
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
@@ -232,10 +235,11 @@ async def update_permission(
 async def delete_permission(
     permission_id: str,
     handler: DeletePermissionHandlerDep,
+    uow: UnitOfWorkDep,
 ) -> JSONResponse:
     """Delete a permission (soft delete)."""
     command = DeletePermissionCommand(permission_id=permission_id)
-    await handler.handle(command)
+    await handler.handle(command, uow)
 
     return JSONResponse(
         status_code=status.HTTP_204_NO_CONTENT,
