@@ -129,6 +129,63 @@ def mock_user_read_model_repository() -> AsyncMock:
 
 
 # ============================================================================
+# Mock Unit of Work Fixture
+# ============================================================================
+
+
+@pytest.fixture
+def mock_unit_of_work() -> AsyncMock:
+    """Create a mock unit of work with repository properties.
+
+    The UoW provides lazy repository access via properties:
+    - users: IUserWriteRepository (for write operations)
+    - users_read: IUserReadRepository (for read/validation)
+    - roles: IRoleWriteRepository
+    - roles_read: IRoleReadRepository
+    - permissions: IPermissionWriteRepository
+    - permissions_read: IPermissionReadRepository
+    """
+    mock = AsyncMock()
+    mock.__aenter__ = AsyncMock(return_value=mock)
+    mock.__aexit__ = AsyncMock(return_value=None)
+    mock.commit = AsyncMock(return_value=None)
+    mock.rollback = AsyncMock(return_value=None)
+    mock.collect_events = MagicMock(return_value=None)
+    mock.add_event = MagicMock(return_value=None)
+
+    # Mock write repositories
+    mock.users = AsyncMock()
+    mock.users.save = AsyncMock(return_value=None)
+    mock.users.delete = AsyncMock(return_value=None)
+
+    mock.roles = AsyncMock()
+    mock.roles.save = AsyncMock(return_value=None)
+    mock.roles.delete = AsyncMock(return_value=None)
+
+    mock.permissions = AsyncMock()
+    mock.permissions.save = AsyncMock(return_value=None)
+    mock.permissions.delete = AsyncMock(return_value=None)
+
+    # Mock read repositories
+    mock.users_read = AsyncMock()
+    mock.users_read.get_by_id = AsyncMock(return_value=None)
+    mock.users_read.get_by_email = AsyncMock(return_value=None)
+    mock.users_read.get_by_username = AsyncMock(return_value=None)
+    mock.users_read.exists_by_email = AsyncMock(return_value=False)
+    mock.users_read.exists_by_username = AsyncMock(return_value=False)
+
+    mock.roles_read = AsyncMock()
+    mock.roles_read.get_by_id = AsyncMock(return_value=None)
+    mock.roles_read.get_by_name = AsyncMock(return_value=None)
+
+    mock.permissions_read = AsyncMock()
+    mock.permissions_read.get_by_id = AsyncMock(return_value=None)
+    mock.permissions_read.get_by_name = AsyncMock(return_value=None)
+
+    return mock
+
+
+# ============================================================================
 # Mock Event Bus Fixture
 # ============================================================================
 

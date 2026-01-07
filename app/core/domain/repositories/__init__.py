@@ -7,31 +7,29 @@ from app.core.domain.repositories.log import (
 )
 from app.core.domain.repositories.permission import (
     IPermissionReadRepository,
-    IPermissionRepository,
     IPermissionWriteRepository,
 )
 from app.core.domain.repositories.role import (
     IRoleReadRepository,
-    IRoleRepository,
     IRoleWriteRepository,
 )
 from app.core.domain.repositories.user import (
     IUserReadRepository,
-    IUserRepository,
     IUserWriteRepository,
 )
 
 __all__ = [
-    "IUserRepository",
+    # User - separated read/write
     "IUserReadRepository",
     "IUserWriteRepository",
+    # Role - separated read/write
+    "IRoleReadRepository",
+    "IRoleWriteRepository",
+    # Permission - separated read/write
+    "IPermissionReadRepository",
+    "IPermissionWriteRepository",
+    # Log - keeps combined (write-only for commands, read for queries)
     "ILogRepository",
     "ILogReadRepository",
     "ILogWriteRepository",
-    "IRoleRepository",
-    "IRoleReadRepository",
-    "IRoleWriteRepository",
-    "IPermissionRepository",
-    "IPermissionReadRepository",
-    "IPermissionWriteRepository",
 ]

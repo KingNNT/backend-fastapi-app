@@ -43,6 +43,7 @@ from app.presentation.dependencies.handlers import (
     RemovePermissionFromUserHandlerDep,
     RemoveRoleFromUserHandlerDep,
 )
+from app.presentation.dependencies.repositories import UnitOfWorkDep
 from app.presentation.dtos import (
     BadRequestResponse,
     ConflictResponse,
@@ -85,6 +86,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 async def create_user(
     request: UserCreateRequest,
     handler: CreateUserHandlerDep,
+    uow: UnitOfWorkDep,
 ) -> JSONResponse:
     """Create a new user."""
     command = CreateUserCommand(
@@ -93,7 +95,7 @@ async def create_user(
         password=request.password,
         full_name=request.full_name,
     )
-    user_id = await handler.handle(command)
+    user_id = await handler.handle(command, uow)
     return JSONResponse(
         status_code=status.HTTP_201_CREATED,
         content={
@@ -278,6 +280,7 @@ async def update_user(
     user_id: str,
     request: UserUpdateRequest,
     handler: UpdateUserHandlerDep,
+    uow: UnitOfWorkDep,
 ) -> JSONResponse:
     """Update a user."""
     command = UpdateUserCommand(
@@ -287,7 +290,7 @@ async def update_user(
         password=request.password,
         full_name=request.full_name,
     )
-    await handler.handle(command)
+    await handler.handle(command, uow)
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
@@ -309,10 +312,11 @@ async def update_user(
 async def delete_user(
     user_id: str,
     handler: DeleteUserHandlerDep,
+    uow: UnitOfWorkDep,
 ) -> JSONResponse:
     """Delete a user (soft delete)."""
     command = DeleteUserCommand(user_id=user_id)
-    await handler.handle(command)
+    await handler.handle(command, uow)
 
     return JSONResponse(
         status_code=status.HTTP_204_NO_CONTENT,

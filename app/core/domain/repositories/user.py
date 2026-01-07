@@ -61,12 +61,3 @@ class IUserReadRepository(Protocol):
     async def count(self, include_deleted: bool = False) -> int:
         """Count total users."""
         ...
-
-
-class IUserRepository(IUserWriteRepository, IUserReadRepository, Protocol):
-    """
-    Combined repository interface for user operations.
-    Use this when you need both read and write access.
-    """
-
-    pass

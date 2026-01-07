@@ -55,29 +55,37 @@ from app.presentation.dependencies.repositories import (
     get_log_read_model_repository,
     get_log_repository,
     get_permission_read_model_repository,
-    get_permission_repository,
+    get_permission_read_repository,
+    get_permission_write_repository,
     get_role_read_model_repository,
-    get_role_repository,
+    get_role_read_repository,
+    get_role_write_repository,
+    get_unit_of_work,
     get_user_read_model_repository,
-    get_user_repository,
+    get_user_read_repository,
+    get_user_write_repository,
     set_log_read_model_repository,
     set_log_repository,
 )
 from app.presentation.dependencies.services import (
     get_event_bus,
     get_password_hasher,
-    get_user_domain_service,
     set_event_bus,
     set_password_hasher,
 )
 
 __all__ = [
-    # Repository providers (PostgreSQL - request-scoped)
-    "get_user_repository",
+    # Unit of Work
+    "get_unit_of_work",
+    # Repository providers (PostgreSQL - request-scoped, separated read/write)
+    "get_user_write_repository",
+    "get_user_read_repository",
     "get_user_read_model_repository",
-    "get_role_repository",
+    "get_role_write_repository",
+    "get_role_read_repository",
     "get_role_read_model_repository",
-    "get_permission_repository",
+    "get_permission_write_repository",
+    "get_permission_read_repository",
     "get_permission_read_model_repository",
     "get_assignment_repository",
     # Repository providers (MongoDB - app-scoped)
@@ -88,7 +96,6 @@ __all__ = [
     # Service providers
     "get_event_bus",
     "get_password_hasher",
-    "get_user_domain_service",
     "set_event_bus",
     "set_password_hasher",
     # Handler providers

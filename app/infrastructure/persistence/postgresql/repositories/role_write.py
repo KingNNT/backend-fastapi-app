@@ -28,12 +28,12 @@ class PostgresRoleWriteRepository:
         if existing:
             # Update existing role
             self._mapper.update_model(existing, aggregate)
-            await self._session.commit()
+            await self._session.flush()
         else:
             # Create new role
             model = self._mapper.to_model(aggregate)
             self._session.add(model)
-            await self._session.commit()
+            await self._session.flush()
 
     async def delete(self, aggregate: RoleAggregate) -> None:
         """Delete a role aggregate (actually performs soft delete via save)."""
