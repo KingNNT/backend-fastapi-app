@@ -70,9 +70,12 @@ This application follows Clean Architecture with Domain-Driven Design tactical p
 
 - **Domain-Driven Design**: Aggregates, Entities, Value Objects, Domain Events
 - **CQRS Pattern**: Separate command (write) and query (read) paths
+- **Unit of Work**: Transaction coordination with auto-commit/rollback and event publishing
+- **Domain Services**: Stateless validation services for cross-entity business rules
 - **Event-Driven**: Domain events trigger side effects (audit logs, notifications)
 - **Repository Pattern**: Abstract data access with Protocol-based interfaces
 - **Dependency Injection**: FastAPI Depends with setter functions for runtime config
+- **RBAC System**: Role-based access control with users, roles, and permissions
 
 ## Project Structure
 
@@ -160,6 +163,29 @@ make health          # Check application health
 - `DELETE /v1/users/{id}` - Soft delete user
 - `GET /v1/users/by-email/{email}` - Get user by email
 - `GET /v1/users/by-username/{username}` - Get user by username
+- `GET /v1/users/{id}/roles` - Get user's assigned roles
+- `POST /v1/users/{id}/roles` - Assign role to user
+- `DELETE /v1/users/{id}/roles/{role_id}` - Remove role from user
+- `GET /v1/users/{id}/permissions` - Get user's effective permissions
+- `POST /v1/users/{id}/permissions` - Assign permission to user
+- `DELETE /v1/users/{id}/permissions/{permission_id}` - Remove permission from user
+
+#### Role API (v1)
+- `POST /v1/roles/` - Create new role
+- `GET /v1/roles/` - List roles
+- `GET /v1/roles/{id}` - Get role by ID
+- `PUT /v1/roles/{id}` - Update role
+- `DELETE /v1/roles/{id}` - Delete role
+- `GET /v1/roles/{id}/permissions` - Get role's permissions
+- `POST /v1/roles/{id}/permissions` - Assign permission to role
+- `DELETE /v1/roles/{id}/permissions/{permission_id}` - Remove permission from role
+
+#### Permission API (v1)
+- `POST /v1/permissions/` - Create new permission
+- `GET /v1/permissions/` - List permissions
+- `GET /v1/permissions/{id}` - Get permission by ID
+- `PUT /v1/permissions/{id}` - Update permission
+- `DELETE /v1/permissions/{id}` - Delete permission
 
 Full API documentation available at http://localhost:8080/docs
 
@@ -180,6 +206,9 @@ For comprehensive guides, see the `docs/` directory:
 - Clean Architecture with clear layer separation
 - Domain-Driven Design tactical patterns
 - CQRS (Command Query Responsibility Segregation)
+- Unit of Work pattern for transaction management
+- Domain Services for validation logic
+- RBAC (Role-Based Access Control) system
 - Dual Database Support (PostgreSQL + MongoDB)
 - Event-Driven Architecture with domain events
 - API Versioning with centralized prefix management
