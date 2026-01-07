@@ -5,6 +5,8 @@
 #   Development: docker-compose up (automatically uses docker-compose.override.yaml)
 #   Production:  docker-compose -f docker-compose.yaml -f docker-compose.production.yaml up
 
+name: backend-fastapi-app
+
 networks:
   network_app:
     driver: bridge
