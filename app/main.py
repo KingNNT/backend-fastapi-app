@@ -17,7 +17,7 @@ from app.infrastructure.configs import (
     get_app_version,
     get_log_config,
 )
-from app.infrastructure.setup import clean_architecture_lifespan
+from app.infrastructure.setup import app_lifespan
 from app.infrastructure.web import (
     RequestLoggingMiddleware,
     SecurityHeadersMiddleware,
@@ -34,7 +34,7 @@ app = FastAPI(
     title=config.name,
     version=get_app_version(),
     description=config.description,
-    lifespan=clean_architecture_lifespan,
+    lifespan=app_lifespan,
 )
 
 # Register exception handlers for domain exceptions

@@ -70,7 +70,7 @@ def setup_app_services() -> None:
 
 
 @asynccontextmanager
-async def clean_architecture_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def app_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Application lifespan context manager for Clean Architecture.
 

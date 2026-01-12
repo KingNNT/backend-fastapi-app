@@ -539,7 +539,7 @@ Initialize dependencies at startup:
 ```python
 # app/infrastructure/setup.py
 @asynccontextmanager
-async def clean_architecture_lifespan(app: FastAPI):
+async def app_lifespan(app: FastAPI):
     # Startup
     await postgres_manager.connect()
     await mongodb_manager.connect()
