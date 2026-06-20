@@ -18,3 +18,13 @@ repos:
         args: [ --fix ]
       - id: ruff-format
         types_or: [ python, pyi ]
+  - repo: local
+    hooks:
+      - id: import-linter
+        name: import-linter (architectural rules)
+        entry: lint-imports
+        language: python
+        additional_dependencies: ["import-linter>=2.0,<3.0"]
+        types: [python]
+        pass_filenames: false
+        always_run: true
