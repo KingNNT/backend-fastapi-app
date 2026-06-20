@@ -37,10 +37,18 @@ typecheck: ## Run type checking with pyright
 	$(DOCKER_EXEC) poetry run pyright
 
 # -----------------------------------------------------------------------------
+# Architectural Rules
+# -----------------------------------------------------------------------------
+.PHONY: arch-check
+arch-check: ## Verify architectural rules (import-linter contracts)
+	@echo -e "$(YELLOW)Verifying architectural rules...$(RESET)"
+	$(DOCKER_EXEC) poetry run lint-imports
+
+# -----------------------------------------------------------------------------
 # Combined Commands
 # -----------------------------------------------------------------------------
 .PHONY: check
-check: format-check lint typecheck ## Run all code quality checks
+check: format-check lint typecheck arch-check ## Run all code quality checks
 	@echo -e "$(GREEN)All code quality checks completed!$(RESET)"
 
 .PHONY: fix
