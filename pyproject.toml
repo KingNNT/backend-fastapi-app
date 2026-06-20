@@ -37,6 +37,7 @@ pre-commit = "^4.2.0"
 pyright = "^1.1.402"
 mypy = "^1.16.1"
 testcontainers = {extras = ["postgres", "mongodb"], version = "^4.0"}
+import-linter = ">=2.0,<3.0"
 
 [tool.ruff]
 line-length = 88
