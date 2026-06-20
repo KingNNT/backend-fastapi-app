@@ -69,3 +69,49 @@ filterwarnings = [
     # Ignore pytest-asyncio event_loop fixture redefinition warning (needed for session-scoped fixtures)
     "ignore:The event_loop fixture provided by pytest-asyncio:DeprecationWarning",
 ]
+
+
+# =============================================================================
+# import-linter — Architectural rule enforcement
+# =============================================================================
+# These contracts describe the CURRENT (layer-first) architecture.
+# They will be replaced by Bounded-Context contracts during the refactor
+# (see docs/superpowers/specs/2026-06-21-bc-modular-monolith-refactor-design.md).
+[tool.importlinter]
+root_packages = ["app"]
+include_external_packages = true
+
+# Contract A: Presentation depends on Application, not the other way around.
+# Contract B: Domain has zero infrastructure / framework imports.
+[[tool.importlinter.contracts]]
+name = "Layer boundaries (current architecture)"
+type = "layers"
+layers = [
+    "app.presentation",
+    "app.core.application",
+    "app.core.domain",
+]
+# Note: app.infrastructure is intentionally NOT in this layers contract
+# because it legitimately imports from app.core.domain (dependency inversion
+# via Protocol implementations). The forbidden contract below enforces the
+# reverse direction.
+
+[[tool.importlinter.contracts]]
+name = "Domain has no infrastructure or framework imports"
+type = "forbidden"
+source_modules = ["app.core.domain"]
+forbidden_modules = [
+    "app.infrastructure",
+    "app.presentation",
+    "fastapi",
+    "sqlmodel",
+    "sqlalchemy",
+    "beanie",
+    "motor",
+]
+
+[[tool.importlinter.contracts]]
+name = "Domain has no application imports"
+type = "forbidden"
+source_modules = ["app.core.domain"]
+forbidden_modules = ["app.core.application"]
