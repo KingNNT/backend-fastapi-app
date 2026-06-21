@@ -47,6 +47,19 @@ test-all-cov: ## Run all tests with coverage
 	$(DOCKER_EXEC) poetry run pytest tests/unit/ tests/e2e/ tests/integration/ --cov=app --cov-report=term-missing --cov-report=html
 
 # -----------------------------------------------------------------------------
+# Per-Bounded-Context Tests
+# -----------------------------------------------------------------------------
+.PHONY: test-iam
+test-iam: ## Run IAM Bounded Context tests only
+	@echo -e "$(GREEN)Running IAM tests...$(RESET)"
+	$(DOCKER_EXEC) poetry run pytest tests/unit/ tests/integration/ -v -k "user or role or permission or assignment"
+
+.PHONY: test-audit
+test-audit: ## Run Audit Bounded Context tests only
+	@echo -e "$(GREEN)Running Audit tests...$(RESET)"
+	$(DOCKER_EXEC) poetry run pytest tests/integration/mongodb/ tests/integration/event_handlers/ -v
+
+# -----------------------------------------------------------------------------
 # Selective Testing
 # -----------------------------------------------------------------------------
 .PHONY: test-file
