@@ -4,7 +4,16 @@ from uuid import uuid4
 
 import pytest
 
-from app.core.application.commands.handlers.log_handlers import CreateLogHandler
+from app.audit.application.handlers import CreateLogHandler
+from app.audit.infrastructure.event_handlers.iam_event_translator import (
+    AuditUserEventTranslator,
+)
+from app.audit.infrastructure.persistence.mongodb.repositories.log_read import (
+    MongoLogReadRepository,
+)
+from app.audit.infrastructure.persistence.mongodb.repositories.log_write import (
+    MongoLogWriteRepository,
+)
 from app.iam.domain.user.events import (
     UserActivated,
     UserCreated,
@@ -12,20 +21,13 @@ from app.iam.domain.user.events import (
     UserDeleted,
     UserUpdated,
 )
-from app.infrastructure.event_handlers.user_event_handlers import UserEventHandler
-from app.infrastructure.persistence.mongodb.repositories.log_read import (
-    MongoLogReadRepository,
-)
-from app.infrastructure.persistence.mongodb.repositories.log_write import (
-    MongoLogWriteRepository,
-)
 from app.platform.messaging.event_bus import InMemoryEventBus
 
 pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
 
 
-class TestUserEventHandlers:
-    """Integration tests for UserEventHandler with real MongoDB."""
+class TestAuditUserEventTranslators:
+    """Integration tests for AuditUserEventTranslator with real MongoDB."""
 
     @pytest.fixture
     def log_write_repo(self):
@@ -47,7 +49,7 @@ class TestUserEventHandlers:
     @pytest.fixture
     def user_event_handler(self, create_log_handler):
         """Create user event handler."""
-        return UserEventHandler(create_log_handler=create_log_handler)
+        return AuditUserEventTranslator(create_log_handler=create_log_handler)
 
     @pytest.fixture
     def event_bus(self, user_event_handler):
@@ -195,7 +197,7 @@ class TestEventBusIntegration:
     @pytest.fixture
     def user_event_handler(self, create_log_handler):
         """Create user event handler."""
-        return UserEventHandler(create_log_handler=create_log_handler)
+        return AuditUserEventTranslator(create_log_handler=create_log_handler)
 
     @pytest.fixture
     def event_bus(self, user_event_handler):

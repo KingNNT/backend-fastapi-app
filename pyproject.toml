@@ -83,38 +83,8 @@ include_external_packages = true
 
 # Contract A: Presentation depends on Application, not the other way around.
 # Contract B: Domain has zero infrastructure / framework imports.
-[[tool.importlinter.contracts]]
-name = "Layer boundaries (current architecture)"
-type = "layers"
-layers = [
-    "app.presentation",
-    "app.core.application",
-    "app.core.domain",
-]
-# Note: app.infrastructure is intentionally NOT in this layers contract
-# because it legitimately imports from app.core.domain (dependency inversion
-# via Protocol implementations). The forbidden contract below enforces the
-# reverse direction.
-
-[[tool.importlinter.contracts]]
-name = "Domain has no infrastructure or framework imports"
-type = "forbidden"
-source_modules = ["app.core.domain"]
-forbidden_modules = [
-    "app.infrastructure",
-    "app.presentation",
-    "fastapi",
-    "sqlmodel",
-    "sqlalchemy",
-    "beanie",
-    "motor",
-]
-
-[[tool.importlinter.contracts]]
-name = "Domain has no application imports"
-type = "forbidden"
-source_modules = ["app.core.domain"]
-forbidden_modules = ["app.core.application"]
+# (Old layer-first contracts removed - app.core/ is gone after Phase 4.
+#  BC-specific layer contracts are defined further below.)
 
 [[tool.importlinter.contracts]]
 name = "Shared kernel is dependency-free"
@@ -158,7 +128,40 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "IAM does not import from core (Log BC)"
+name = "IAM does not import from audit BC"
 type = "forbidden"
 source_modules = ["app.iam"]
-forbidden_modules = ["app.core"]
+forbidden_modules = ["app.audit"]
+
+[[tool.importlinter.contracts]]
+name = "Audit layer boundaries"
+type = "layers"
+layers = [
+    "app.audit.presentation",
+    "app.audit.application",
+    "app.audit.domain",
+]
+
+[[tool.importlinter.contracts]]
+name = "Audit domain has no infrastructure or framework imports"
+type = "forbidden"
+source_modules = ["app.audit.domain"]
+forbidden_modules = [
+    "app.audit.infrastructure",
+    "app.infrastructure",
+    "app.platform",
+    "app.presentation",
+    "fastapi",
+    "beanie",
+    "motor",
+    "pymongo",
+]
+
+[[tool.importlinter.contracts]]
+name = "Audit does not import from iam BC"
+type = "forbidden"
+source_modules = ["app.audit"]
+forbidden_modules = ["app.iam"]
+ignore_imports = [
+    "app.audit.infrastructure.event_handlers.iam_event_translator -> app.iam.domain.user.events",
+]

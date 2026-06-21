@@ -3,7 +3,7 @@
 import motor.motor_asyncio
 from beanie import init_beanie
 
-from app.infrastructure.persistence.mongodb.models.log import LogModel
+from app.audit.infrastructure.persistence.mongodb.models.log import LogModel
 from app.platform.configs import get_app_config
 
 

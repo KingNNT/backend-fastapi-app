@@ -1,4 +1,6 @@
-"""Persistence layer - database implementations."""
+"""Persistence layer - empty.
 
-from app.infrastructure.persistence.mongodb import *
-from app.infrastructure.persistence.postgresql import *
+BC-specific persistence lives in each BC:
+- IAM: app.iam.infrastructure.persistence.postgresql
+- Audit: app.audit.infrastructure.persistence.mongodb
+"""
