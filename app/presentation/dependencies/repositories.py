@@ -5,24 +5,24 @@ from typing import Annotated, AsyncGenerator
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.application.interfaces import IUnitOfWork
-from app.core.application.queries.handlers.assignment_handlers import (
+from app.core.application.queries.handlers.log_handlers import ILogReadModelRepository
+from app.core.domain.repositories.log import ILogWriteRepository
+from app.iam.application.handlers.assignment_query_handlers import (
     IAssignmentQueryRepository,
     IPermissionReadModelRepository,
     IRoleReadModelRepository,
 )
-from app.core.application.queries.handlers.log_handlers import ILogReadModelRepository
-from app.core.application.queries.handlers.user_handlers import IUserReadModelRepository
-from app.core.domain.repositories.log import ILogWriteRepository
-from app.core.domain.repositories.permission import (
+from app.iam.application.handlers.user_query_handlers import IUserReadModelRepository
+from app.iam.application.interfaces.unit_of_work import IIamUnitOfWork
+from app.iam.domain.permission.repository import (
     IPermissionReadRepository,
     IPermissionWriteRepository,
 )
-from app.core.domain.repositories.role import (
+from app.iam.domain.role.repository import (
     IRoleReadRepository,
     IRoleWriteRepository,
 )
-from app.core.domain.repositories.user import (
+from app.iam.domain.user.repository import (
     IUserReadRepository,
     IUserWriteRepository,
 )
@@ -60,7 +60,7 @@ from app.shared.application.interfaces.event_bus import IEventBus
 # -----------------------------------------------------------------------------
 async def get_unit_of_work(
     event_bus: IEventBus = Depends(get_event_bus),
-) -> AsyncGenerator[IUnitOfWork, None]:
+) -> AsyncGenerator[IIamUnitOfWork, None]:
     """Get request-scoped Unit of Work with auto-commit.
 
     The Unit of Work:
@@ -95,7 +95,7 @@ async def get_unit_of_work(
 
 
 # Type alias for dependency injection
-UnitOfWorkDep = Annotated[IUnitOfWork, Depends(get_unit_of_work)]
+UnitOfWorkDep = Annotated[IIamUnitOfWork, Depends(get_unit_of_work)]
 
 
 # -----------------------------------------------------------------------------

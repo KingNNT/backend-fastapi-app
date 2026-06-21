@@ -3,17 +3,17 @@
 from fastapi import APIRouter, Query, status
 from fastapi.responses import JSONResponse
 
-from app.core.application.commands.permission import (
+from app.iam.application.commands.permission import (
     CreatePermissionCommand,
     DeletePermissionCommand,
     UpdatePermissionCommand,
 )
-from app.core.application.queries.permission import (
+from app.iam.application.queries.permission import (
     GetPermissionByIdQuery,
     GetPermissionByNameQuery,
     ListPermissionsQuery,
 )
-from app.core.domain.exceptions.permission import PermissionNotFound
+from app.iam.domain.permission.exceptions import PermissionNotFound
 from app.presentation.dependencies.handlers import (
     CreatePermissionHandlerDep,
     DeletePermissionHandlerDep,

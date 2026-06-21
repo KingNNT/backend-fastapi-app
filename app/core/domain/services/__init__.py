@@ -1,11 +1,6 @@
-"""Domain services - cross-entity domain logic."""
+"""Domain services - cross-entity domain logic.
 
-from app.core.domain.services.permission_domain_service import PermissionDomainService
-from app.core.domain.services.role_domain_service import RoleDomainService
-from app.core.domain.services.user_domain_service import UserDomainService
+IAM domain services moved to app.iam.domain.<aggregate>.domain_service. Empty.
+"""
 
-__all__ = [
-    "UserDomainService",
-    "RoleDomainService",
-    "PermissionDomainService",
-]
+__all__: list[str] = []

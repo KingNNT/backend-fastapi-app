@@ -4,7 +4,7 @@ from uuid import UUID
 
 import pytest
 
-from app.core.domain.value_objects import Email, Username
+from app.iam.domain.user.value_objects import Email, Username
 from app.shared.domain.ids import UserId
 
 

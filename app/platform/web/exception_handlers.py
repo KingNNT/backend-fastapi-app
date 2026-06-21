@@ -3,7 +3,7 @@
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
-from app.core.domain.exceptions import (
+from app.iam.domain.user.exceptions import (
     InvalidUserState,
     UserAlreadyExists,
     UserNotFound,

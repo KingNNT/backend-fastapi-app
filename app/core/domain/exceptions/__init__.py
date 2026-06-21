@@ -1,25 +1,7 @@
-"""Domain exceptions - business logic errors."""
+"""Domain exceptions - business logic errors.
 
-from app.core.domain.exceptions.permission import (
-    PermissionAlreadyExists,
-    PermissionNotFound,
-)
-from app.core.domain.exceptions.role import (
-    RoleAlreadyExists,
-    RoleNotFound,
-)
-from app.core.domain.exceptions.user import (
-    InvalidUserState,
-    UserAlreadyExists,
-    UserNotFound,
-)
+IAM exceptions (User/Role/Permission) moved to app.iam.domain.<aggregate>.exceptions.
+Only generic + base exceptions remain here, plus Log-specific ones (none currently).
+"""
 
-__all__ = [
-    "UserNotFound",
-    "UserAlreadyExists",
-    "InvalidUserState",
-    "RoleNotFound",
-    "RoleAlreadyExists",
-    "PermissionNotFound",
-    "PermissionAlreadyExists",
-]
+__all__: list[str] = []

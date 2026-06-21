@@ -1,9 +1,9 @@
 """Role mapper for PostgreSQL - converts between domain and persistence models."""
 
-from app.core.application.read_models.role_read_model import RoleReadModel
-from app.core.domain.aggregates.role import RoleAggregate
-from app.core.domain.entities.role import Role
-from app.core.domain.value_objects.role_name import RoleName
+from app.iam.application.read_models.role_read_model import RoleReadModel
+from app.iam.domain.role.aggregate import RoleAggregate
+from app.iam.domain.role.entity import Role
+from app.iam.domain.role.value_objects import RoleName
 from app.infrastructure.persistence.postgresql.helpers import strip_timezone
 from app.infrastructure.persistence.postgresql.models.role import RoleModel
 from app.shared.domain.ids.role_id import RoleId

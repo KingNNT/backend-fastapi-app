@@ -1,6 +1,6 @@
 """Dependency injection for services."""
 
-from app.core.application.commands.handlers.user_handlers import IPasswordHasher
+from app.iam.application.handlers.user_handlers import IPasswordHasher
 from app.shared.application.interfaces.event_bus import IEventBus
 
 # These will be implemented in the infrastructure layer

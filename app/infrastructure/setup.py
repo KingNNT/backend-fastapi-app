@@ -7,7 +7,7 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 
 from app.core.application.commands.handlers.log_handlers import CreateLogHandler
-from app.core.domain.events.user_events import (
+from app.iam.domain.user.events import (
     UserActivated,
     UserCreated,
     UserDeactivated,

@@ -128,5 +128,38 @@ type = "forbidden"
 source_modules = ["app.platform"]
 forbidden_modules = ["app.core.domain", "app.core.application"]
 ignore_imports = [
-    "app.platform.web.exception_handlers -> app.core.domain.exceptions",
+    "app.platform.web.exception_handlers -> app.iam.domain.user.exceptions",
 ]
+
+
+# Phase 3 will create app.iam.presentation - uncomment then.
+# [[tool.importlinter.contracts]]
+# name = "IAM layer boundaries"
+# type = "layers"
+# layers = [
+#     "app.iam.presentation",
+#     "app.iam.application",
+#     "app.iam.domain",
+# ]
+
+[[tool.importlinter.contracts]]
+name = "IAM domain has no infrastructure or framework imports"
+type = "forbidden"
+source_modules = ["app.iam.domain"]
+forbidden_modules = [
+    "app.iam.infrastructure",
+    "app.infrastructure",
+    "app.platform",
+    "app.presentation",
+    "fastapi",
+    "sqlmodel",
+    "sqlalchemy",
+    "beanie",
+    "motor",
+]
+
+[[tool.importlinter.contracts]]
+name = "IAM does not import from core (Log BC)"
+type = "forbidden"
+source_modules = ["app.iam"]
+forbidden_modules = ["app.core"]

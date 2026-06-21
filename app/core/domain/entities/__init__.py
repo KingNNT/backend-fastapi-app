@@ -1,13 +1,8 @@
-"""Entities - objects with identity."""
+"""Entities - objects with identity.
+
+Only Log entity remains. IAM ones live in app.iam.domain.<aggregate>.entity.
+"""
 
 from app.core.domain.entities.log import Log
-from app.core.domain.entities.permission import Permission
-from app.core.domain.entities.role import Role
-from app.core.domain.entities.user import User
 
-__all__ = [
-    "User",
-    "Log",
-    "Role",
-    "Permission",
-]
+__all__ = ["Log"]

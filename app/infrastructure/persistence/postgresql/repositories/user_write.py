@@ -3,9 +3,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.domain.aggregates.user import UserAggregate
-from app.core.domain.value_objects.email import Email
-from app.core.domain.value_objects.username import Username
+from app.iam.domain.user.aggregate import UserAggregate
+from app.iam.domain.user.value_objects import Email, Username
 from app.infrastructure.persistence.postgresql.mappers.user import UserMapper
 from app.infrastructure.persistence.postgresql.models.user import UserModel
 

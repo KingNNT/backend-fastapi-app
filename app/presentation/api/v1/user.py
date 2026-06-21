@@ -4,28 +4,28 @@ from fastapi import APIRouter, Query, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from app.core.application.commands.assignment import (
+from app.iam.application.commands.assignment import (
     AssignPermissionToUserCommand,
     AssignRoleToUserCommand,
     RemovePermissionFromUserCommand,
     RemoveRoleFromUserCommand,
 )
-from app.core.application.commands.user import (
+from app.iam.application.commands.user import (
     CreateUserCommand,
     DeleteUserCommand,
     UpdateUserCommand,
 )
-from app.core.application.queries.assignment import (
+from app.iam.application.queries.assignment import (
     GetUserEffectivePermissionsQuery,
     GetUserRolesQuery,
 )
-from app.core.application.queries.user import (
+from app.iam.application.queries.user import (
     GetUserByEmailQuery,
     GetUserByIdQuery,
     GetUserByUsernameQuery,
     ListUsersQuery,
 )
-from app.core.domain.exceptions.user import UserNotFound
+from app.iam.domain.user.exceptions import UserNotFound
 from app.presentation.dependencies import (
     CreateUserHandlerDep,
     DeleteUserHandlerDep,

@@ -3,8 +3,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.domain.aggregates.permission import PermissionAggregate
-from app.core.domain.value_objects.permission_name import PermissionName
+from app.iam.domain.permission.aggregate import PermissionAggregate
+from app.iam.domain.permission.value_objects import PermissionName
 from app.infrastructure.persistence.postgresql.mappers.permission import (
     PermissionMapper,
 )

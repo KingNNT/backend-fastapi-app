@@ -3,8 +3,8 @@
 import time
 from uuid import UUID
 
-from app.core.domain.entities import User
-from app.core.domain.value_objects import Email, Username
+from app.iam.domain.user.entity import User
+from app.iam.domain.user.value_objects import Email, Username
 from app.shared.domain.base_entity import BaseEntity, utc_now
 from app.shared.domain.ids import UserId
 

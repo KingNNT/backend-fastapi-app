@@ -58,6 +58,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.mise.local.toml
 
 # mypy
 .mypy_cache/

@@ -4,26 +4,22 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from app.core.application.commands.handlers import (
+from app.core.application.commands.handlers.log_handlers import CreateLogHandler
+from app.core.application.queries.handlers.log_handlers import (
+    GetLogByIdHandler,
+    ListLogsByUserHandler,
+    ListLogsHandler,
+)
+from app.iam.application.handlers import (
     AssignPermissionToRoleHandler,
     AssignPermissionToUserHandler,
     AssignRoleToUserHandler,
-    CreateLogHandler,
     CreatePermissionHandler,
     CreateRoleHandler,
     CreateUserHandler,
     DeletePermissionHandler,
     DeleteRoleHandler,
     DeleteUserHandler,
-    RemovePermissionFromRoleHandler,
-    RemovePermissionFromUserHandler,
-    RemoveRoleFromUserHandler,
-    UpdatePermissionHandler,
-    UpdateRoleHandler,
-    UpdateUserHandler,
-)
-from app.core.application.queries.handlers import (
-    GetLogByIdHandler,
     GetPermissionByIdHandler,
     GetPermissionByNameHandler,
     GetRoleByIdHandler,
@@ -34,11 +30,15 @@ from app.core.application.queries.handlers import (
     GetUserByUsernameHandler,
     GetUserEffectivePermissionsHandler,
     GetUserRolesHandler,
-    ListLogsByUserHandler,
-    ListLogsHandler,
     ListPermissionsHandler,
     ListRolesHandler,
     ListUsersHandler,
+    RemovePermissionFromRoleHandler,
+    RemovePermissionFromUserHandler,
+    RemoveRoleFromUserHandler,
+    UpdatePermissionHandler,
+    UpdateRoleHandler,
+    UpdateUserHandler,
 )
 from app.presentation.dependencies.repositories import (
     get_assignment_repository,
@@ -250,70 +250,34 @@ def get_list_permissions_handler(
 
 
 # Assignment Command Handlers
-def get_assign_role_to_user_handler(
-    assignment_repository=Depends(get_assignment_repository),
-    event_bus=Depends(get_event_bus),
-) -> AssignRoleToUserHandler:
+def get_assign_role_to_user_handler() -> AssignRoleToUserHandler:
     """Get AssignRoleToUserHandler instance."""
-    return AssignRoleToUserHandler(
-        assignment_repository=assignment_repository,
-        event_bus=event_bus,
-    )
+    return AssignRoleToUserHandler()
 
 
-def get_remove_role_from_user_handler(
-    assignment_repository=Depends(get_assignment_repository),
-    event_bus=Depends(get_event_bus),
-) -> RemoveRoleFromUserHandler:
+def get_remove_role_from_user_handler() -> RemoveRoleFromUserHandler:
     """Get RemoveRoleFromUserHandler instance."""
-    return RemoveRoleFromUserHandler(
-        assignment_repository=assignment_repository,
-        event_bus=event_bus,
-    )
+    return RemoveRoleFromUserHandler()
 
 
-def get_assign_permission_to_user_handler(
-    assignment_repository=Depends(get_assignment_repository),
-    event_bus=Depends(get_event_bus),
-) -> AssignPermissionToUserHandler:
+def get_assign_permission_to_user_handler() -> AssignPermissionToUserHandler:
     """Get AssignPermissionToUserHandler instance."""
-    return AssignPermissionToUserHandler(
-        assignment_repository=assignment_repository,
-        event_bus=event_bus,
-    )
+    return AssignPermissionToUserHandler()
 
 
-def get_remove_permission_from_user_handler(
-    assignment_repository=Depends(get_assignment_repository),
-    event_bus=Depends(get_event_bus),
-) -> RemovePermissionFromUserHandler:
+def get_remove_permission_from_user_handler() -> RemovePermissionFromUserHandler:
     """Get RemovePermissionFromUserHandler instance."""
-    return RemovePermissionFromUserHandler(
-        assignment_repository=assignment_repository,
-        event_bus=event_bus,
-    )
+    return RemovePermissionFromUserHandler()
 
 
-def get_assign_permission_to_role_handler(
-    assignment_repository=Depends(get_assignment_repository),
-    event_bus=Depends(get_event_bus),
-) -> AssignPermissionToRoleHandler:
+def get_assign_permission_to_role_handler() -> AssignPermissionToRoleHandler:
     """Get AssignPermissionToRoleHandler instance."""
-    return AssignPermissionToRoleHandler(
-        assignment_repository=assignment_repository,
-        event_bus=event_bus,
-    )
+    return AssignPermissionToRoleHandler()
 
 
-def get_remove_permission_from_role_handler(
-    assignment_repository=Depends(get_assignment_repository),
-    event_bus=Depends(get_event_bus),
-) -> RemovePermissionFromRoleHandler:
+def get_remove_permission_from_role_handler() -> RemovePermissionFromRoleHandler:
     """Get RemovePermissionFromRoleHandler instance."""
-    return RemovePermissionFromRoleHandler(
-        assignment_repository=assignment_repository,
-        event_bus=event_bus,
-    )
+    return RemovePermissionFromRoleHandler()
 
 
 # Assignment Query Handlers

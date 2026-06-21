@@ -5,12 +5,16 @@ from typing import Self
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.core.domain.repositories.permission import (
+from app.iam.domain.assignment.repository import IAssignmentRepository
+from app.iam.domain.permission.repository import (
     IPermissionReadRepository,
     IPermissionWriteRepository,
 )
-from app.core.domain.repositories.role import IRoleReadRepository, IRoleWriteRepository
-from app.core.domain.repositories.user import IUserReadRepository, IUserWriteRepository
+from app.iam.domain.role.repository import IRoleReadRepository, IRoleWriteRepository
+from app.iam.domain.user.repository import IUserReadRepository, IUserWriteRepository
+from app.infrastructure.persistence.postgresql.repositories.assignment_repository import (  # noqa: E501
+    AssignmentRepository,
+)
 from app.infrastructure.persistence.postgresql.repositories.permission_read import (
     PostgresPermissionReadRepository,
 )
@@ -58,6 +62,7 @@ class PostgresUnitOfWork:
     roles_read: IRoleReadRepository
     permissions: IPermissionWriteRepository
     permissions_read: IPermissionReadRepository
+    assignments: IAssignmentRepository
 
     def __init__(
         self,
@@ -97,6 +102,7 @@ class PostgresUnitOfWork:
         self.roles_read = PostgresRoleReadRepository(session)
         self.permissions = PostgresPermissionWriteRepository(session)
         self.permissions_read = PostgresPermissionReadRepository(session)
+        self.assignments = AssignmentRepository(session)
 
     async def __aenter__(self) -> Self:
         """Enter the transaction context.

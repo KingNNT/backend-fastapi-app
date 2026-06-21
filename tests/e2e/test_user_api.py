@@ -7,8 +7,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.core.application.read_models import UserReadModel
-from app.core.domain.exceptions import UserAlreadyExists, UserNotFound
+from app.iam.application.read_models.user_read_model import UserReadModel
+from app.iam.domain.user.exceptions import UserAlreadyExists, UserNotFound
 from app.platform.web import register_exception_handlers
 from app.presentation.api import api_router
 from app.presentation.dependencies import (

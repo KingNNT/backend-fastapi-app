@@ -6,9 +6,9 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.application.read_models.role_read_model import RoleReadModel
-from app.core.domain.aggregates.role import RoleAggregate
-from app.core.domain.value_objects.role_name import RoleName
+from app.iam.application.read_models.role_read_model import RoleReadModel
+from app.iam.domain.role.aggregate import RoleAggregate
+from app.iam.domain.role.value_objects import RoleName
 from app.infrastructure.persistence.postgresql.mappers.role import RoleMapper
 from app.infrastructure.persistence.postgresql.models.role import RoleModel
 from app.shared.domain.ids.role_id import RoleId

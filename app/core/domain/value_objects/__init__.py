@@ -1,15 +1,10 @@
-"""Value Objects - immutable objects defined by their attributes."""
+"""Value Objects - immutable objects defined by their attributes.
+
+IAM value objects (Email, Username, RoleName, PermissionName) moved to app.iam.domain.
+ID value objects (UserId, RoleId, etc.) moved to app.shared.domain.ids.
+Only Action (audit-specific) remains here.
+"""
 
 from app.core.domain.value_objects.action import Action
-from app.core.domain.value_objects.email import Email
-from app.core.domain.value_objects.permission_name import PermissionName
-from app.core.domain.value_objects.role_name import RoleName
-from app.core.domain.value_objects.username import Username
 
-__all__ = [
-    "Email",
-    "Username",
-    "Action",
-    "RoleName",
-    "PermissionName",
-]
+__all__ = ["Action"]

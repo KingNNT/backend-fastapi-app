@@ -4,7 +4,7 @@ import logging
 
 from app.core.application.commands.handlers.log_handlers import CreateLogHandler
 from app.core.application.commands.log.create_log import CreateLogCommand
-from app.core.domain.events.user_events import (
+from app.iam.domain.user.events import (
     UserActivated,
     UserCreated,
     UserDeactivated,

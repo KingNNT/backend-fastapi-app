@@ -1,7 +1,8 @@
 """
 Domain layer - pure business logic with no framework dependencies.
-Contains: Entities, Value Objects, Aggregates, Domain Events, Repository Interfaces,
-Specifications, and Domain Services.
+
+Only Log-related domain code remains here (will move to app.audit in Phase 4).
+IAM domain code lives in app.iam.domain.
 """
 
 from app.core.domain.aggregates import *

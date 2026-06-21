@@ -4,9 +4,9 @@ from uuid import UUID
 
 import pytest
 
-from app.core.domain.aggregates import UserAggregate
-from app.core.domain.entities import User
-from app.core.domain.events import (
+from app.iam.domain.user.aggregate import UserAggregate
+from app.iam.domain.user.entity import User
+from app.iam.domain.user.events import (
     UserActivated,
     UserCreated,
     UserDeactivated,
@@ -15,8 +15,8 @@ from app.core.domain.events import (
     UserPasswordUpdated,
     UserUpdated,
 )
-from app.core.domain.exceptions import InvalidUserState
-from app.core.domain.value_objects import Email, Username
+from app.iam.domain.user.exceptions import InvalidUserState
+from app.iam.domain.user.value_objects import Email, Username
 from app.shared.domain.ids import UserId
 
 

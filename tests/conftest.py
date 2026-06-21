@@ -6,10 +6,10 @@ from uuid import uuid4
 
 import pytest
 
-from app.core.application.read_models import UserReadModel
-from app.core.domain.aggregates import UserAggregate
-from app.core.domain.entities import User
-from app.core.domain.value_objects import Email, Username
+from app.iam.application.read_models.user_read_model import UserReadModel
+from app.iam.domain.user.aggregate import UserAggregate
+from app.iam.domain.user.entity import User
+from app.iam.domain.user.value_objects import Email, Username
 from app.shared.domain.ids import UserId
 
 # ============================================================================

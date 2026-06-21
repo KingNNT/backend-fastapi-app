@@ -5,19 +5,19 @@ from uuid import UUID
 
 import pytest
 
-from app.core.application.commands import (
+from app.iam.application.commands.user import (
     CreateUserCommand,
     DeleteUserCommand,
     UpdateUserCommand,
 )
-from app.core.application.commands.handlers import (
+from app.iam.application.handlers import (
     CreateUserHandler,
     DeleteUserHandler,
     UpdateUserHandler,
 )
-from app.core.domain.aggregates import UserAggregate
-from app.core.domain.exceptions import UserAlreadyExists, UserNotFound
-from app.core.domain.value_objects import Email, Username
+from app.iam.domain.user.aggregate import UserAggregate
+from app.iam.domain.user.exceptions import UserAlreadyExists, UserNotFound
+from app.iam.domain.user.value_objects import Email, Username
 
 
 class TestCreateUserHandler:

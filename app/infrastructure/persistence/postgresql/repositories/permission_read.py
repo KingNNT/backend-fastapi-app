@@ -6,9 +6,9 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.application.read_models.permission_read_model import PermissionReadModel
-from app.core.domain.aggregates.permission import PermissionAggregate
-from app.core.domain.value_objects.permission_name import PermissionName
+from app.iam.application.read_models.permission_read_model import PermissionReadModel
+from app.iam.domain.permission.aggregate import PermissionAggregate
+from app.iam.domain.permission.value_objects import PermissionName
 from app.infrastructure.persistence.postgresql.mappers.permission import (
     PermissionMapper,
 )

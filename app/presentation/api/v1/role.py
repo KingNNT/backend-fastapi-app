@@ -3,22 +3,22 @@
 from fastapi import APIRouter, Query, status
 from fastapi.responses import JSONResponse
 
-from app.core.application.commands.assignment import (
+from app.iam.application.commands.assignment import (
     AssignPermissionToRoleCommand,
     RemovePermissionFromRoleCommand,
 )
-from app.core.application.commands.role import (
+from app.iam.application.commands.role import (
     CreateRoleCommand,
     DeleteRoleCommand,
     UpdateRoleCommand,
 )
-from app.core.application.queries.assignment import GetRolePermissionsQuery
-from app.core.application.queries.role import (
+from app.iam.application.queries.assignment import GetRolePermissionsQuery
+from app.iam.application.queries.role import (
     GetRoleByIdQuery,
     GetRoleByNameQuery,
     ListRolesQuery,
 )
-from app.core.domain.exceptions.role import RoleNotFound
+from app.iam.domain.role.exceptions import RoleNotFound
 from app.presentation.dependencies.handlers import (
     AssignPermissionToRoleHandlerDep,
     CreateRoleHandlerDep,

@@ -1,8 +1,4 @@
-"""Shared application interfaces — buses and contracts.
-
-Note: IUnitOfWork stays in app/core/application/interfaces/ for now.
-It will be split into base (shared) + IAM-specific in Phase 2.
-"""
+"""Shared application interfaces — buses, UoW base, and contracts."""
 
 from app.shared.application.interfaces.command_bus import (
     ICommand,
@@ -15,6 +11,7 @@ from app.shared.application.interfaces.query_bus import (
     IQueryBus,
     IQueryHandler,
 )
+from app.shared.application.interfaces.unit_of_work import IUnitOfWork
 
 __all__ = [
     "IEventBus",
@@ -24,4 +21,5 @@ __all__ = [
     "IQuery",
     "IQueryHandler",
     "IQueryBus",
+    "IUnitOfWork",
 ]
