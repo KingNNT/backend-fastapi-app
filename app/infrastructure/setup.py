@@ -1,4 +1,4 @@
-"""Infrastructure setup - initializes all dependencies for Clean Architecture."""
+"""Application composition root - initializes all dependencies and wires BCs."""
 
 import logging
 from contextlib import asynccontextmanager
@@ -14,18 +14,19 @@ from app.iam.domain.user.events import (
     UserDeleted,
     UserUpdated,
 )
+from app.iam.infrastructure.messaging.password_hasher import SimplePasswordHasher
 from app.infrastructure.event_handlers import UserEventHandler
-from app.infrastructure.messaging import InMemoryEventBus, SimplePasswordHasher
 from app.infrastructure.persistence.mongodb.repositories import (
     MongoLogReadModelRepository,
     MongoLogWriteRepository,
 )
-from app.platform.persistence.mongodb.database import mongo_db_manager
-from app.platform.persistence.postgresql.database import postgres_db_manager
-from app.presentation.dependencies import (
+from app.platform.messaging.event_bus import InMemoryEventBus
+from app.platform.messaging.services import (
     set_event_bus,
     set_password_hasher,
 )
+from app.platform.persistence.mongodb.database import mongo_db_manager
+from app.platform.persistence.postgresql.database import postgres_db_manager
 from app.presentation.dependencies.repositories import (
     set_log_read_model_repository,
     set_log_repository,
@@ -62,7 +63,7 @@ def setup_app_services() -> None:
     set_log_repository(log_write_repo)
     set_log_read_model_repository(log_read_model_repo)
 
-    # Set infrastructure service bindings
+    # Set infrastructure service bindings (global state in platform/messaging)
     set_event_bus(event_bus)
     set_password_hasher(password_hasher)
 
@@ -71,20 +72,14 @@ def setup_app_services() -> None:
 
 @asynccontextmanager
 async def app_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """
-    Application lifespan context manager for Clean Architecture.
-
-    Manages database connections and app-scoped service initialization.
-    PostgreSQL sessions are now request-scoped via FastAPI Depends.
-    """
-    # Startup
-    logger.info("Starting application with Clean Architecture...")
+    """Application lifespan context manager."""
+    logger.info("Starting application...")
 
     # Initialize database connections
     await postgres_db_manager.connect()
     await mongo_db_manager.connect()
 
-    # Set up app-scoped services (event bus, password hasher, MongoDB repos)
+    # Set up app-scoped services
     setup_app_services()
 
     yield  # Application runs

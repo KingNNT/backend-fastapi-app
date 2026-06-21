@@ -6,11 +6,11 @@ import pytest
 
 from app.iam.domain.user.aggregate import UserAggregate
 from app.iam.domain.user.value_objects import Email, Username
-from app.infrastructure.persistence.postgresql.repositories.user_read import (
+from app.iam.infrastructure.persistence.postgresql.repositories.user_read import (
     PostgresUserReadModelRepository,
     PostgresUserReadRepository,
 )
-from app.infrastructure.persistence.postgresql.repositories.user_write import (
+from app.iam.infrastructure.persistence.postgresql.repositories.user_write import (
     PostgresUserWriteRepository,
 )
 

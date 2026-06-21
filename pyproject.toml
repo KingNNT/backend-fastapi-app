@@ -132,15 +132,14 @@ ignore_imports = [
 ]
 
 
-# Phase 3 will create app.iam.presentation - uncomment then.
-# [[tool.importlinter.contracts]]
-# name = "IAM layer boundaries"
-# type = "layers"
-# layers = [
-#     "app.iam.presentation",
-#     "app.iam.application",
-#     "app.iam.domain",
-# ]
+[[tool.importlinter.contracts]]
+name = "IAM layer boundaries"
+type = "layers"
+layers = [
+    "app.iam.presentation",
+    "app.iam.application",
+    "app.iam.domain",
+]
 
 [[tool.importlinter.contracts]]
 name = "IAM domain has no infrastructure or framework imports"

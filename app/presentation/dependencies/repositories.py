@@ -1,187 +1,24 @@
-"""Dependency injection for repositories."""
+"""Presentation-layer dependency providers for Log BC only.
 
-from typing import Annotated, AsyncGenerator
+IAM-specific dependencies (UoW, read model repos, password hasher) live in
+app.iam.presentation.dependencies.
+"""
+
+from typing import Annotated
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.application.queries.handlers.log_handlers import ILogReadModelRepository
+from app.core.application.queries.handlers.log_handlers import (
+    ILogReadModelRepository,
+)
 from app.core.domain.repositories.log import ILogWriteRepository
-from app.iam.application.handlers.assignment_query_handlers import (
-    IAssignmentQueryRepository,
-    IPermissionReadModelRepository,
-    IRoleReadModelRepository,
-)
-from app.iam.application.handlers.user_query_handlers import IUserReadModelRepository
-from app.iam.application.interfaces.unit_of_work import IIamUnitOfWork
-from app.iam.domain.permission.repository import (
-    IPermissionReadRepository,
-    IPermissionWriteRepository,
-)
-from app.iam.domain.role.repository import (
-    IRoleReadRepository,
-    IRoleWriteRepository,
-)
-from app.iam.domain.user.repository import (
-    IUserReadRepository,
-    IUserWriteRepository,
-)
-from app.infrastructure.persistence.postgresql.repositories import (
-    AssignmentRepository,
-    PostgresPermissionReadModelRepository,
-    PostgresPermissionReadRepository,
-    PostgresPermissionWriteRepository,
-    PostgresRoleReadModelRepository,
-    PostgresRoleReadRepository,
-    PostgresRoleWriteRepository,
-    PostgresUserReadModelRepository,
-    PostgresUserReadRepository,
-    PostgresUserWriteRepository,
-)
-from app.infrastructure.persistence.postgresql.unit_of_work import PostgresUnitOfWork
 from app.platform.persistence.postgresql.database import (
     get_postgres_session,
-    postgres_db_manager,
 )
-from app.presentation.dependencies.services import get_event_bus
-from app.shared.application.interfaces.event_bus import IEventBus
 
 # =============================================================================
-# PostgreSQL Repositories - Request-scoped (new session per request)
-# =============================================================================
-# Note: FastAPI caches Depends() within a request, so all repositories
-# using Depends(get_postgres_session) will share the same session instance.
-# This ensures transaction consistency across read and write operations.
-# =============================================================================
-
-
-# -----------------------------------------------------------------------------
-# Unit of Work (Request-scoped with auto-commit)
-# -----------------------------------------------------------------------------
-async def get_unit_of_work(
-    event_bus: IEventBus = Depends(get_event_bus),
-) -> AsyncGenerator[IIamUnitOfWork, None]:
-    """Get request-scoped Unit of Work with auto-commit.
-
-    The Unit of Work:
-    - Creates a new database session for each request
-    - Contains lazy-initialized repositories (users, roles, permissions)
-    - Auto-commits on successful request completion
-    - Auto-rollbacks on exception
-    - Publishes domain events AFTER successful commit
-
-    Usage in controllers:
-        @router.post("/")
-        async def create_user(
-            request: UserCreateRequest,
-            handler: CreateUserHandlerDep,
-            uow: UnitOfWorkDep,
-        ):
-            user_id = await handler.handle(command, uow)
-            # Auto-commits when request ends
-    """
-    if postgres_db_manager.session_maker is None:
-        raise RuntimeError(
-            "Database is not connected. Call postgres_db_manager.connect() first."
-        )
-
-    uow = PostgresUnitOfWork(
-        session_factory=postgres_db_manager.session_maker,
-        event_bus=event_bus,
-    )
-
-    async with uow:  # Auto-commits on success, rollbacks on exception
-        yield uow
-
-
-# Type alias for dependency injection
-UnitOfWorkDep = Annotated[IIamUnitOfWork, Depends(get_unit_of_work)]
-
-
-# -----------------------------------------------------------------------------
-# User Repositories
-# -----------------------------------------------------------------------------
-async def get_user_write_repository(
-    session: AsyncSession = Depends(get_postgres_session),
-) -> AsyncGenerator[IUserWriteRepository, None]:
-    """Get user write repository with request-scoped session."""
-    yield PostgresUserWriteRepository(session)
-
-
-async def get_user_read_repository(
-    session: AsyncSession = Depends(get_postgres_session),
-) -> AsyncGenerator[IUserReadRepository, None]:
-    """Get user read repository with request-scoped session."""
-    yield PostgresUserReadRepository(session)
-
-
-async def get_user_read_model_repository(
-    session: AsyncSession = Depends(get_postgres_session),
-) -> AsyncGenerator[IUserReadModelRepository, None]:
-    """Get user read model repository with request-scoped session."""
-    yield PostgresUserReadModelRepository(session)
-
-
-# -----------------------------------------------------------------------------
-# Role Repositories
-# -----------------------------------------------------------------------------
-async def get_role_write_repository(
-    session: AsyncSession = Depends(get_postgres_session),
-) -> AsyncGenerator[IRoleWriteRepository, None]:
-    """Get role write repository with request-scoped session."""
-    yield PostgresRoleWriteRepository(session)
-
-
-async def get_role_read_repository(
-    session: AsyncSession = Depends(get_postgres_session),
-) -> AsyncGenerator[IRoleReadRepository, None]:
-    """Get role read repository with request-scoped session."""
-    yield PostgresRoleReadRepository(session)
-
-
-async def get_role_read_model_repository(
-    session: AsyncSession = Depends(get_postgres_session),
-) -> AsyncGenerator[IRoleReadModelRepository, None]:
-    """Get role read model repository with request-scoped session."""
-    yield PostgresRoleReadModelRepository(session)
-
-
-# -----------------------------------------------------------------------------
-# Permission Repositories
-# -----------------------------------------------------------------------------
-async def get_permission_write_repository(
-    session: AsyncSession = Depends(get_postgres_session),
-) -> AsyncGenerator[IPermissionWriteRepository, None]:
-    """Get permission write repository with request-scoped session."""
-    yield PostgresPermissionWriteRepository(session)
-
-
-async def get_permission_read_repository(
-    session: AsyncSession = Depends(get_postgres_session),
-) -> AsyncGenerator[IPermissionReadRepository, None]:
-    """Get permission read repository with request-scoped session."""
-    yield PostgresPermissionReadRepository(session)
-
-
-async def get_permission_read_model_repository(
-    session: AsyncSession = Depends(get_postgres_session),
-) -> AsyncGenerator[IPermissionReadModelRepository, None]:
-    """Get permission read model repository with request-scoped session."""
-    yield PostgresPermissionReadModelRepository(session)
-
-
-# -----------------------------------------------------------------------------
-# Assignment Repository
-# -----------------------------------------------------------------------------
-async def get_assignment_repository(
-    session: AsyncSession = Depends(get_postgres_session),
-) -> AsyncGenerator[IAssignmentQueryRepository, None]:
-    """Get assignment repository with request-scoped session."""
-    yield AssignmentRepository(session)
-
-
-# =============================================================================
-# MongoDB Repositories - App-scoped (no session concerns)
+# Log Repositories - App-scoped (no session concerns)
 # =============================================================================
 
 _log_repository: ILogWriteRepository | None = None
@@ -212,3 +49,7 @@ def get_log_read_model_repository() -> ILogReadModelRepository:
     if _log_read_model_repository is None:
         raise RuntimeError("Log read model repository not initialized")
     return _log_read_model_repository
+
+
+# Re-export the postgres session dep so log handlers can use it if needed
+PostgresSessionDep = Annotated[AsyncSession, Depends(get_postgres_session)]

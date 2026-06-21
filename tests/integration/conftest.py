@@ -11,8 +11,8 @@ from sqlmodel import SQLModel
 from testcontainers.mongodb import MongoDbContainer
 from testcontainers.postgres import PostgresContainer
 
+from app.iam.infrastructure.persistence.postgresql.models.user import UserModel
 from app.infrastructure.persistence.mongodb.models.log import LogModel
-from app.infrastructure.persistence.postgresql.models.user import UserModel
 
 # Mark all integration tests
 pytestmark = pytest.mark.integration

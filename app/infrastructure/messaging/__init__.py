@@ -1,9 +1,5 @@
-"""Messaging infrastructure - event bus and related utilities."""
+"""Messaging infrastructure - re-exports for backward compatibility.
 
-from app.infrastructure.messaging.password_hasher import SimplePasswordHasher
-from app.platform.messaging.event_bus import InMemoryEventBus
-
-__all__ = [
-    "InMemoryEventBus",
-    "SimplePasswordHasher",
-]
+The SimplePasswordHasher moved to app.iam.infrastructure.messaging.
+The InMemoryEventBus implementation lives in app.platform.messaging.
+"""

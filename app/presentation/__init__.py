@@ -1,9 +1,5 @@
-"""Presentation layer - API controllers, DTOs, and dependencies."""
+"""Presentation layer — only system/health routes.
 
-from app.presentation.api import api_router
-from app.presentation.dependencies import *
-from app.presentation.dtos import *
-
-__all__ = [
-    "api_router",
-]
+IAM and Audit BC routers are included directly in app/main.py from their own
+BC presentation/api/__init__.py modules.
+"""

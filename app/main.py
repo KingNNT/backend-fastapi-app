@@ -1,17 +1,14 @@
-"""
-Application entry point with Clean Architecture.
+"""Application entry point - BC Modular Monolith.
 
-This FastAPI application follows Clean Architecture + DDD + CQRS patterns:
-- Domain Layer: Pure business logic (core/domain/)
-- Application Layer: CQRS handlers (core/application/)
-- Presentation Layer: API controllers (presentation/)
-- Infrastructure Layer: Database implementations (infrastructure/)
+Each Bounded Context exposes its own router via app.<bc>.presentation.api.
+The composition root (this file) wires everything together.
 """
 
 import logging.config
 
 from fastapi import FastAPI
 
+from app.iam.presentation.api import router as iam_router
 from app.infrastructure.setup import app_lifespan
 from app.platform.configs import (
     get_app_config,
@@ -23,7 +20,7 @@ from app.platform.web import (
     SecurityHeadersMiddleware,
     register_exception_handlers,
 )
-from app.presentation.api import api_router
+from app.presentation.api import router as system_router
 
 config = get_app_config()
 
@@ -44,5 +41,7 @@ register_exception_handlers(app)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
-# Include API routers
-app.include_router(api_router)
+# Include BC routers
+app.include_router(system_router)  # /health-check, /version
+app.include_router(iam_router, prefix="/v1")  # /v1/users, /v1/roles, etc.
+# TODO Phase 4: app.include_router(audit_router, prefix="/v1")  # /v1/logs
