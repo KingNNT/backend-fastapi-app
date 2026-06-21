@@ -9,8 +9,8 @@ from app.core.application.interfaces import IUnitOfWork
 from app.core.domain.aggregates.role import RoleAggregate
 from app.core.domain.exceptions.role import RoleNotFound
 from app.core.domain.services import RoleDomainService
-from app.core.domain.value_objects.role_id import RoleId
 from app.core.domain.value_objects.role_name import RoleName
+from app.shared.domain.ids.role_id import RoleId
 
 
 class CreateRoleHandler:

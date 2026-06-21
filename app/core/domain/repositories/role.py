@@ -3,8 +3,8 @@
 from typing import Optional, Protocol
 
 from app.core.domain.aggregates.role import RoleAggregate
-from app.core.domain.value_objects.role_id import RoleId
 from app.core.domain.value_objects.role_name import RoleName
+from app.shared.domain.ids.role_id import RoleId
 
 
 class IRoleWriteRepository(Protocol):

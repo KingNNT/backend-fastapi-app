@@ -5,8 +5,8 @@ import random
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from app.infrastructure.persistence.mongodb.database import mongo_db_manager
 from app.infrastructure.persistence.mongodb.models.log import LogModel
+from app.platform.persistence.mongodb.database import mongo_db_manager
 
 logger = logging.getLogger(__name__)
 

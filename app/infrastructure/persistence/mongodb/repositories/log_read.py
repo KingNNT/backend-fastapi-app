@@ -8,9 +8,9 @@ from beanie import PydanticObjectId
 from app.core.application.read_models.log_read_model import LogReadModel
 from app.core.domain.aggregates.log import LogAggregate
 from app.core.domain.value_objects.action import Action
-from app.core.domain.value_objects.log_id import LogId
 from app.infrastructure.persistence.mongodb.mappers.log import LogMapper
 from app.infrastructure.persistence.mongodb.models.log import LogModel
+from app.shared.domain.ids.log_id import LogId
 
 
 class MongoLogReadRepository:

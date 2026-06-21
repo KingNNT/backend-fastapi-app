@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from typing import Callable, TypeVar
 
-from app.core.domain.events.base import BaseDomainEvent
+from app.shared.domain.base_event import BaseDomainEvent
 
 logger = logging.getLogger(__name__)
 

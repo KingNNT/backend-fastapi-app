@@ -4,9 +4,9 @@ Database seeder runner
 
 DEPRECATED: This script is deprecated. Use the new Typer CLI instead:
 
-    python -m app.infrastructure.cli.main db seed
-    python -m app.infrastructure.cli.main db clear
-    python -m app.infrastructure.cli.main db status
+    python -m app.platform.cli.main db seed
+    python -m app.platform.cli.main db clear
+    python -m app.platform.cli.main db status
 
 Or via Makefile:
 
@@ -24,8 +24,7 @@ from pathlib import Path
 
 # Emit deprecation warning
 warnings.warn(
-    "seed_runner.py is deprecated. "
-    "Use 'python -m app.infrastructure.cli.main db' instead.",
+    "seed_runner.py is deprecated. Use 'python -m app.platform.cli.main db' instead.",
     DeprecationWarning,
     stacklevel=2,
 )
@@ -33,11 +32,11 @@ warnings.warn(
 # Add the app directory to Python path
 sys.path.append(str(Path(__file__).parent.parent.parent.parent.parent))
 
-from app.infrastructure.persistence.postgresql.database import (  # noqa: E402
-    postgres_db_manager,
-)
 from app.infrastructure.persistence.postgresql.seeds.user_seeder import (  # noqa: E402
     UserSeeder,
+)
+from app.platform.persistence.postgresql.database import (  # noqa: E402
+    postgres_db_manager,
 )
 
 

@@ -2,7 +2,7 @@
 
 import typer
 
-from app.infrastructure.cli.commands import seed
+from app.platform.cli.commands import seed
 
 app = typer.Typer(
     name="cli",

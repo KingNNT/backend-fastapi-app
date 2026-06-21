@@ -1,8 +1,8 @@
 """Log write repository implementation for MongoDB."""
 
 from app.core.domain.aggregates.log import LogAggregate
-from app.core.domain.value_objects.log_id import LogId
 from app.infrastructure.persistence.mongodb.mappers.log import LogMapper
+from app.shared.domain.ids.log_id import LogId
 
 
 class MongoLogWriteRepository:

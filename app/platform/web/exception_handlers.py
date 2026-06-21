@@ -4,14 +4,16 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
 from app.core.domain.exceptions import (
+    InvalidUserState,
+    UserAlreadyExists,
+    UserNotFound,
+)
+from app.shared.domain import (
     BusinessRuleViolation,
     DomainException,
     EntityAlreadyExists,
     EntityNotFound,
     ErrorCode,
-    InvalidUserState,
-    UserAlreadyExists,
-    UserNotFound,
     ValidationError,
 )
 

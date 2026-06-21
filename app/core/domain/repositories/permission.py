@@ -3,8 +3,8 @@
 from typing import Optional, Protocol
 
 from app.core.domain.aggregates.permission import PermissionAggregate
-from app.core.domain.value_objects.permission_id import PermissionId
 from app.core.domain.value_objects.permission_name import PermissionName
+from app.shared.domain.ids.permission_id import PermissionId
 
 
 class IPermissionWriteRepository(Protocol):

@@ -5,8 +5,6 @@ from typing import Self
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.core.application.interfaces.event_bus import IEventBus
-from app.core.domain.events.base import BaseDomainEvent
 from app.core.domain.repositories.permission import (
     IPermissionReadRepository,
     IPermissionWriteRepository,
@@ -31,6 +29,8 @@ from app.infrastructure.persistence.postgresql.repositories.user_read import (
 from app.infrastructure.persistence.postgresql.repositories.user_write import (
     PostgresUserWriteRepository,
 )
+from app.shared.application.interfaces.event_bus import IEventBus
+from app.shared.domain.base_event import BaseDomainEvent
 
 logger = logging.getLogger(__name__)
 

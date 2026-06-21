@@ -4,10 +4,10 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from app.core.domain.entities.log import Log
-from app.core.domain.events.base import BaseDomainEvent
 from app.core.domain.events.log_events import LogCreated
 from app.core.domain.value_objects.action import Action
-from app.core.domain.value_objects.log_id import LogId
+from app.shared.domain.base_event import BaseDomainEvent
+from app.shared.domain.ids.log_id import LogId
 
 
 @dataclass

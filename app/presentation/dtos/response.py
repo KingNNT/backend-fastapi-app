@@ -4,7 +4,7 @@ from typing import Any, Generic, Optional, TypeVar
 
 from pydantic import BaseModel, Field
 
-from app.core.domain.exceptions import ErrorCode
+from app.shared.domain.error_codes import ErrorCode
 
 T = TypeVar("T")
 

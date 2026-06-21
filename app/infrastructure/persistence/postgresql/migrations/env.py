@@ -12,7 +12,7 @@ from sqlmodel import SQLModel
 # Add the app directory to Python path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from app.infrastructure.configs import get_app_config
+from app.platform.configs import get_app_config
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

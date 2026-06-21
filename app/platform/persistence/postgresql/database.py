@@ -2,7 +2,7 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from app.infrastructure.configs import get_app_config
+from app.platform.configs import get_app_config
 
 
 class PostgresDatabaseManager:

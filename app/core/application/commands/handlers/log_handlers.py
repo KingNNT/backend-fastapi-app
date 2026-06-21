@@ -1,10 +1,10 @@
 """Log command handlers - execute log write operations."""
 
 from app.core.application.commands.log.create_log import CreateLogCommand
-from app.core.application.interfaces.event_bus import IEventBus
 from app.core.domain.aggregates.log import LogAggregate
 from app.core.domain.repositories.log import ILogWriteRepository
 from app.core.domain.value_objects.action import Action
+from app.shared.application.interfaces.event_bus import IEventBus
 
 
 class CreateLogHandler:

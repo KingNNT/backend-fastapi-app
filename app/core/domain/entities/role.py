@@ -3,9 +3,9 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from app.core.domain.entities.base import BaseEntity
-from app.core.domain.value_objects.role_id import RoleId
 from app.core.domain.value_objects.role_name import RoleName
+from app.shared.domain.base_entity import BaseEntity
+from app.shared.domain.ids.role_id import RoleId
 
 
 @dataclass

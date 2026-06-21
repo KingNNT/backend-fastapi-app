@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-from app.core.domain.exceptions.error_codes import ErrorCode
+from app.shared.domain.error_codes import ErrorCode
 
 
 @dataclass

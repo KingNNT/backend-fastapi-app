@@ -4,8 +4,8 @@ from typing import Optional, Protocol
 
 from app.core.domain.aggregates.user import UserAggregate
 from app.core.domain.value_objects.email import Email
-from app.core.domain.value_objects.user_id import UserId
 from app.core.domain.value_objects.username import Username
+from app.shared.domain.ids.user_id import UserId
 
 
 class IUserWriteRepository(Protocol):

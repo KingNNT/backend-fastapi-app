@@ -5,7 +5,7 @@ from typing import Any
 from fastapi import status
 from fastapi.responses import JSONResponse
 
-from app.core.domain.exceptions.base import DomainException
+from app.shared.domain.base_exception import DomainException
 
 
 class APIResponse:

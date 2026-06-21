@@ -2,7 +2,7 @@
 
 from typing import Callable, Protocol, TypeVar
 
-from app.core.domain.events.base import BaseDomainEvent
+from app.shared.domain.base_event import BaseDomainEvent
 
 T = TypeVar("T", bound=BaseDomainEvent)
 

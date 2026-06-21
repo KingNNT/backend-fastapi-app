@@ -1,5 +1,5 @@
 """CLI module for database operations."""
 
-from app.infrastructure.cli.main import app
+from app.platform.cli.main import app
 
 __all__ = ["app"]

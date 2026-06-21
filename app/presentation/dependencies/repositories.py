@@ -6,7 +6,6 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.application.interfaces import IUnitOfWork
-from app.core.application.interfaces.event_bus import IEventBus
 from app.core.application.queries.handlers.assignment_handlers import (
     IAssignmentQueryRepository,
     IPermissionReadModelRepository,
@@ -27,10 +26,6 @@ from app.core.domain.repositories.user import (
     IUserReadRepository,
     IUserWriteRepository,
 )
-from app.infrastructure.persistence.postgresql.database import (
-    get_postgres_session,
-    postgres_db_manager,
-)
 from app.infrastructure.persistence.postgresql.repositories import (
     AssignmentRepository,
     PostgresPermissionReadModelRepository,
@@ -44,7 +39,12 @@ from app.infrastructure.persistence.postgresql.repositories import (
     PostgresUserWriteRepository,
 )
 from app.infrastructure.persistence.postgresql.unit_of_work import PostgresUnitOfWork
+from app.platform.persistence.postgresql.database import (
+    get_postgres_session,
+    postgres_db_manager,
+)
 from app.presentation.dependencies.services import get_event_bus
+from app.shared.application.interfaces.event_bus import IEventBus
 
 # =============================================================================
 # PostgreSQL Repositories - Request-scoped (new session per request)

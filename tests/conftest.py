@@ -9,7 +9,8 @@ import pytest
 from app.core.application.read_models import UserReadModel
 from app.core.domain.aggregates import UserAggregate
 from app.core.domain.entities import User
-from app.core.domain.value_objects import Email, UserId, Username
+from app.core.domain.value_objects import Email, Username
+from app.shared.domain.ids import UserId
 
 # ============================================================================
 # Value Object Fixtures

@@ -13,7 +13,6 @@ from app.core.application.commands.assignment.role_assignment import (
     AssignRoleToUserCommand,
     RemoveRoleFromUserCommand,
 )
-from app.core.application.interfaces.event_bus import IEventBus
 from app.core.domain.events.permission_events import (
     PermissionAssignedToUser,
     PermissionRemovedFromUser,
@@ -27,6 +26,7 @@ from app.core.domain.events.role_events import (
 from app.core.domain.exceptions.permission import PermissionNotFound
 from app.core.domain.exceptions.role import RoleNotFound
 from app.core.domain.exceptions.user import UserNotFound
+from app.shared.application.interfaces.event_bus import IEventBus
 
 
 class IAssignmentRepository(Protocol):

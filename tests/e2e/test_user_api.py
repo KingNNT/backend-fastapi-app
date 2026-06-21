@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.core.application.read_models import UserReadModel
 from app.core.domain.exceptions import UserAlreadyExists, UserNotFound
-from app.infrastructure.web import register_exception_handlers
+from app.platform.web import register_exception_handlers
 from app.presentation.api import api_router
 from app.presentation.dependencies import (
     get_create_user_handler,

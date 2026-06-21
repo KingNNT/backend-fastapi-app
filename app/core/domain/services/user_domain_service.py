@@ -2,10 +2,10 @@
 
 from app.core.domain.aggregates.user import UserAggregate
 from app.core.domain.exceptions.user import UserAlreadyExists
-from app.core.domain.exceptions.validation import BusinessRuleViolation
 from app.core.domain.repositories.user import IUserReadRepository
 from app.core.domain.value_objects.email import Email
 from app.core.domain.value_objects.username import Username
+from app.shared.domain.validation import BusinessRuleViolation
 
 
 class UserDomainService:

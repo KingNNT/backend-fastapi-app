@@ -4,10 +4,10 @@ from app.core.application.read_models.user_read_model import UserReadModel
 from app.core.domain.aggregates.user import UserAggregate
 from app.core.domain.entities.user import User
 from app.core.domain.value_objects.email import Email
-from app.core.domain.value_objects.user_id import UserId
 from app.core.domain.value_objects.username import Username
 from app.infrastructure.persistence.postgresql.helpers import strip_timezone
 from app.infrastructure.persistence.postgresql.models.user import UserModel
+from app.shared.domain.ids.user_id import UserId
 
 
 class UserMapper:

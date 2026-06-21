@@ -5,14 +5,14 @@ from typing import Optional
 from uuid import UUID
 
 from app.core.domain.entities.permission import Permission
-from app.core.domain.events.base import BaseDomainEvent
 from app.core.domain.events.permission_events import (
     PermissionCreated,
     PermissionDeleted,
     PermissionUpdated,
 )
-from app.core.domain.value_objects.permission_id import PermissionId
 from app.core.domain.value_objects.permission_name import PermissionName
+from app.shared.domain.base_event import BaseDomainEvent
+from app.shared.domain.ids.permission_id import PermissionId
 
 
 @dataclass

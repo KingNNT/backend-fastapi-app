@@ -3,10 +3,10 @@
 from app.core.application.read_models.permission_read_model import PermissionReadModel
 from app.core.domain.aggregates.permission import PermissionAggregate
 from app.core.domain.entities.permission import Permission
-from app.core.domain.value_objects.permission_id import PermissionId
 from app.core.domain.value_objects.permission_name import PermissionName
 from app.infrastructure.persistence.postgresql.helpers import strip_timezone
 from app.infrastructure.persistence.postgresql.models.permission import PermissionModel
+from app.shared.domain.ids.permission_id import PermissionId
 
 
 class PermissionMapper:

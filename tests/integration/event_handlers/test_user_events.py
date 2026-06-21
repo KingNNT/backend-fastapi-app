@@ -13,13 +13,13 @@ from app.core.domain.events import (
     UserUpdated,
 )
 from app.infrastructure.event_handlers.user_event_handlers import UserEventHandler
-from app.infrastructure.messaging.event_bus import InMemoryEventBus
 from app.infrastructure.persistence.mongodb.repositories.log_read import (
     MongoLogReadRepository,
 )
 from app.infrastructure.persistence.mongodb.repositories.log_write import (
     MongoLogWriteRepository,
 )
+from app.platform.messaging.event_bus import InMemoryEventBus
 
 pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
 

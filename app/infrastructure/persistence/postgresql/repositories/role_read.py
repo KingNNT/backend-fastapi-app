@@ -8,10 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.application.read_models.role_read_model import RoleReadModel
 from app.core.domain.aggregates.role import RoleAggregate
-from app.core.domain.value_objects.role_id import RoleId
 from app.core.domain.value_objects.role_name import RoleName
 from app.infrastructure.persistence.postgresql.mappers.role import RoleMapper
 from app.infrastructure.persistence.postgresql.models.role import RoleModel
+from app.shared.domain.ids.role_id import RoleId
 
 
 class PostgresRoleReadRepository:

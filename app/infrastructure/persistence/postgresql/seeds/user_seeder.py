@@ -3,8 +3,8 @@ import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.infrastructure.persistence.postgresql.database import postgres_db_manager
 from app.infrastructure.persistence.postgresql.models.user import UserModel
+from app.platform.persistence.postgresql.database import postgres_db_manager
 
 
 class UserSeeder:

@@ -12,13 +12,13 @@ import logging.config
 
 from fastapi import FastAPI
 
-from app.infrastructure.configs import (
+from app.infrastructure.setup import app_lifespan
+from app.platform.configs import (
     get_app_config,
     get_app_version,
     get_log_config,
 )
-from app.infrastructure.setup import app_lifespan
-from app.infrastructure.web import (
+from app.platform.web import (
     RequestLoggingMiddleware,
     SecurityHeadersMiddleware,
     register_exception_handlers,

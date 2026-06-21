@@ -16,12 +16,12 @@ from app.core.domain.events.user_events import (
 )
 from app.infrastructure.event_handlers import UserEventHandler
 from app.infrastructure.messaging import InMemoryEventBus, SimplePasswordHasher
-from app.infrastructure.persistence.mongodb.database import mongo_db_manager
 from app.infrastructure.persistence.mongodb.repositories import (
     MongoLogReadModelRepository,
     MongoLogWriteRepository,
 )
-from app.infrastructure.persistence.postgresql.database import postgres_db_manager
+from app.platform.persistence.mongodb.database import mongo_db_manager
+from app.platform.persistence.postgresql.database import postgres_db_manager
 from app.presentation.dependencies import (
     set_event_bus,
     set_password_hasher,

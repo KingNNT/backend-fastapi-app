@@ -5,7 +5,6 @@ from typing import Optional
 from uuid import UUID
 
 from app.core.domain.entities.user import User
-from app.core.domain.events.base import BaseDomainEvent
 from app.core.domain.events.user_events import (
     UserActivated,
     UserCreated,
@@ -17,8 +16,9 @@ from app.core.domain.events.user_events import (
 )
 from app.core.domain.exceptions.user import InvalidUserState
 from app.core.domain.value_objects.email import Email
-from app.core.domain.value_objects.user_id import UserId
 from app.core.domain.value_objects.username import Username
+from app.shared.domain.base_event import BaseDomainEvent
+from app.shared.domain.ids.user_id import UserId
 
 
 @dataclass

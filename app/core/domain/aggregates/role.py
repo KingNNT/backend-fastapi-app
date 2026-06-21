@@ -5,14 +5,14 @@ from typing import Optional
 from uuid import UUID
 
 from app.core.domain.entities.role import Role
-from app.core.domain.events.base import BaseDomainEvent
 from app.core.domain.events.role_events import (
     RoleCreated,
     RoleDeleted,
     RoleUpdated,
 )
-from app.core.domain.value_objects.role_id import RoleId
 from app.core.domain.value_objects.role_name import RoleName
+from app.shared.domain.base_event import BaseDomainEvent
+from app.shared.domain.ids.role_id import RoleId
 
 
 @dataclass

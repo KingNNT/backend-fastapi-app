@@ -3,8 +3,8 @@
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-from app.core.domain.exceptions.base import DomainException
-from app.core.domain.exceptions.error_codes import ErrorCode
+from app.shared.domain.base_exception import DomainException
+from app.shared.domain.error_codes import ErrorCode
 
 
 @dataclass

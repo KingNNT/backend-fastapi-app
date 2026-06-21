@@ -7,10 +7,10 @@ from typing import Any
 
 import typer
 
-from app.infrastructure.cli.utils.async_runner import run_async
-from app.infrastructure.cli.utils.console import Console
-from app.infrastructure.configs.logging import get_log_config
 from app.infrastructure.persistence.seeders import LogSeeder, UserSeeder
+from app.platform.cli.utils.async_runner import run_async
+from app.platform.cli.utils.console import Console
+from app.platform.configs.logging import get_log_config
 
 # Configure logging for CLI
 logging.config.dictConfig(get_log_config())

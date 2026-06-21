@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 from uuid import UUID, uuid4
 
-from app.core.domain.events.base import BaseDomainEvent
+from app.shared.domain.base_event import BaseDomainEvent
 
 
 def utc_now() -> datetime:

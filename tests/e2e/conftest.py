@@ -18,12 +18,12 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import SQLModel
 
-from app.infrastructure.persistence.mongodb.database import mongo_db_manager
 from app.infrastructure.persistence.mongodb.models.log import LogModel
-from app.infrastructure.persistence.postgresql.database import postgres_db_manager
 from app.infrastructure.persistence.postgresql.models import UserModel
 from app.infrastructure.setup import setup_app_services
-from app.infrastructure.web import register_exception_handlers
+from app.platform.persistence.mongodb.database import mongo_db_manager
+from app.platform.persistence.postgresql.database import postgres_db_manager
+from app.platform.web import register_exception_handlers
 from app.presentation.api import api_router
 
 # Mark all tests in this directory as e2e tests

@@ -11,8 +11,8 @@ from app.core.domain.aggregates.user import UserAggregate
 from app.core.domain.exceptions.user import UserNotFound
 from app.core.domain.services import UserDomainService
 from app.core.domain.value_objects.email import Email
-from app.core.domain.value_objects.user_id import UserId
 from app.core.domain.value_objects.username import Username
+from app.shared.domain.ids.user_id import UserId
 
 
 class IPasswordHasher(Protocol):

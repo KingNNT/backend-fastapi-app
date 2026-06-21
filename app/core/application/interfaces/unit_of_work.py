@@ -3,13 +3,13 @@
 import logging
 from typing import Protocol, Self, runtime_checkable
 
-from app.core.domain.events.base import BaseDomainEvent
 from app.core.domain.repositories.permission import (
     IPermissionReadRepository,
     IPermissionWriteRepository,
 )
 from app.core.domain.repositories.role import IRoleReadRepository, IRoleWriteRepository
 from app.core.domain.repositories.user import IUserReadRepository, IUserWriteRepository
+from app.shared.domain.base_event import BaseDomainEvent
 
 logger = logging.getLogger(__name__)
 

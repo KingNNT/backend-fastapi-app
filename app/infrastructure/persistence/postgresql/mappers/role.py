@@ -3,10 +3,10 @@
 from app.core.application.read_models.role_read_model import RoleReadModel
 from app.core.domain.aggregates.role import RoleAggregate
 from app.core.domain.entities.role import Role
-from app.core.domain.value_objects.role_id import RoleId
 from app.core.domain.value_objects.role_name import RoleName
 from app.infrastructure.persistence.postgresql.helpers import strip_timezone
 from app.infrastructure.persistence.postgresql.models.role import RoleModel
+from app.shared.domain.ids.role_id import RoleId
 
 
 class RoleMapper:

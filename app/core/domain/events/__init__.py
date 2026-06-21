@@ -1,6 +1,5 @@
 """Domain events - records of things that happened in the domain."""
 
-from app.core.domain.events.base import BaseDomainEvent
 from app.core.domain.events.log_events import LogCreated
 from app.core.domain.events.permission_events import (
     PermissionAssignedToUser,
@@ -29,7 +28,6 @@ from app.core.domain.events.user_events import (
 )
 
 __all__ = [
-    "BaseDomainEvent",
     # User events
     "UserCreated",
     "UserUpdated",

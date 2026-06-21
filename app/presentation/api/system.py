@@ -3,7 +3,7 @@
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
-from app.infrastructure.configs import get_app_config
+from app.platform.configs import get_app_config
 
 router = APIRouter(tags=["System"])
 

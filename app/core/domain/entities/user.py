@@ -3,10 +3,10 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from app.core.domain.entities.base import BaseEntity
 from app.core.domain.value_objects.email import Email
-from app.core.domain.value_objects.user_id import UserId
 from app.core.domain.value_objects.username import Username
+from app.shared.domain.base_entity import BaseEntity
+from app.shared.domain.ids.user_id import UserId
 
 
 @dataclass

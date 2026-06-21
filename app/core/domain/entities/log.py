@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from app.core.domain.value_objects.action import Action
-from app.core.domain.value_objects.log_id import LogId
+from app.shared.domain.ids.log_id import LogId
 
 
 def utc_now() -> datetime:

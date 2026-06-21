@@ -16,7 +16,8 @@ from app.core.domain.events import (
     UserUpdated,
 )
 from app.core.domain.exceptions import InvalidUserState
-from app.core.domain.value_objects import Email, UserId, Username
+from app.core.domain.value_objects import Email, Username
+from app.shared.domain.ids import UserId
 
 
 class TestUserAggregate:

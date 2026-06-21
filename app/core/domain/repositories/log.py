@@ -5,7 +5,7 @@ from typing import Optional, Protocol
 
 from app.core.domain.aggregates.log import LogAggregate
 from app.core.domain.value_objects.action import Action
-from app.core.domain.value_objects.log_id import LogId
+from app.shared.domain.ids.log_id import LogId
 
 
 class ILogWriteRepository(Protocol):

@@ -115,3 +115,18 @@ name = "Domain has no application imports"
 type = "forbidden"
 source_modules = ["app.core.domain"]
 forbidden_modules = ["app.core.application"]
+
+[[tool.importlinter.contracts]]
+name = "Shared kernel is dependency-free"
+type = "forbidden"
+source_modules = ["app.shared"]
+forbidden_modules = ["app.core", "app.platform", "app.presentation", "app.infrastructure"]
+
+[[tool.importlinter.contracts]]
+name = "Platform cannot import BC domain/application code"
+type = "forbidden"
+source_modules = ["app.platform"]
+forbidden_modules = ["app.core.domain", "app.core.application"]
+ignore_imports = [
+    "app.platform.web.exception_handlers -> app.core.domain.exceptions",
+]
