@@ -1,0 +1,11 @@
+# Temporary override for refactor work — avoids port conflicts with sibling projects
+services:
+  python:
+    ports: !reset []
+    depends_on: !reset {}
+  mongodb:
+    ports: !reset []
+  postgresql:
+    ports: !reset []
+  redis:
+    ports: !reset []

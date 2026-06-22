@@ -1,14 +1,12 @@
-"""API routers."""
+"""Presentation layer — only system/health routes.
+
+IAM and Audit BC routers are included directly in app/main.py from their own
+BC presentation/api/__init__.py modules.
+"""
 
 from fastapi import APIRouter
 
 from app.presentation.api import system
-from app.presentation.api.v1 import v1_router
 
-api_router = APIRouter()
-
-# Include system routes (no version prefix)
-api_router.include_router(system.router)
-
-# Include versioned API routes
-api_router.include_router(v1_router)
+router = APIRouter()
+router.include_router(system.router)

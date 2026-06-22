@@ -7,11 +7,10 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.core.application.read_models import UserReadModel
-from app.core.domain.exceptions import UserAlreadyExists, UserNotFound
-from app.infrastructure.web import register_exception_handlers
-from app.presentation.api import api_router
-from app.presentation.dependencies import (
+from app.iam.application.read_models.user_read_model import UserReadModel
+from app.iam.domain.user.exceptions import UserAlreadyExists, UserNotFound
+from app.iam.presentation.api import router as api_router
+from app.iam.presentation.dependencies.handlers import (
     get_create_user_handler,
     get_delete_user_handler,
     get_list_users_handler,
@@ -20,7 +19,8 @@ from app.presentation.dependencies import (
     get_user_by_id_handler,
     get_user_by_username_handler,
 )
-from app.presentation.dependencies.repositories import get_unit_of_work
+from app.iam.presentation.dependencies.repositories import get_iam_unit_of_work
+from app.platform.web import register_exception_handlers
 
 
 def create_mock_uow():
@@ -39,7 +39,7 @@ def app():
     """Create a test FastAPI application."""
     test_app = FastAPI()
     register_exception_handlers(test_app)
-    test_app.include_router(api_router)
+    test_app.include_router(api_router, prefix="/v1")
     return test_app
 
 
@@ -89,7 +89,7 @@ class TestCreateUserEndpoint:
         )
 
         app.dependency_overrides[get_create_user_handler] = lambda: mock_handler
-        app.dependency_overrides[get_unit_of_work] = create_mock_uow
+        app.dependency_overrides[get_iam_unit_of_work] = create_mock_uow
         client = TestClient(app)
 
         response = client.post(
@@ -117,7 +117,7 @@ class TestCreateUserEndpoint:
         )
 
         app.dependency_overrides[get_create_user_handler] = lambda: mock_handler
-        app.dependency_overrides[get_unit_of_work] = create_mock_uow
+        app.dependency_overrides[get_iam_unit_of_work] = create_mock_uow
         client = TestClient(app)
 
         response = client.post(
@@ -140,7 +140,7 @@ class TestCreateUserEndpoint:
         mock_handler = AsyncMock()
 
         app.dependency_overrides[get_create_user_handler] = lambda: mock_handler
-        app.dependency_overrides[get_unit_of_work] = create_mock_uow
+        app.dependency_overrides[get_iam_unit_of_work] = create_mock_uow
         client = TestClient(app)
 
         response = client.post(
@@ -332,7 +332,7 @@ class TestUpdateUserEndpoint:
         )
 
         app.dependency_overrides[get_update_user_handler] = lambda: mock_handler
-        app.dependency_overrides[get_unit_of_work] = create_mock_uow
+        app.dependency_overrides[get_iam_unit_of_work] = create_mock_uow
         client = TestClient(app)
 
         response = client.put(
@@ -358,7 +358,7 @@ class TestUpdateUserEndpoint:
         )
 
         app.dependency_overrides[get_update_user_handler] = lambda: mock_handler
-        app.dependency_overrides[get_unit_of_work] = create_mock_uow
+        app.dependency_overrides[get_iam_unit_of_work] = create_mock_uow
         client = TestClient(app)
 
         response = client.put(
@@ -380,7 +380,7 @@ class TestUpdateUserEndpoint:
         )
 
         app.dependency_overrides[get_update_user_handler] = lambda: mock_handler
-        app.dependency_overrides[get_unit_of_work] = create_mock_uow
+        app.dependency_overrides[get_iam_unit_of_work] = create_mock_uow
         client = TestClient(app)
 
         response = client.put(
@@ -404,7 +404,7 @@ class TestDeleteUserEndpoint:
         mock_handler.handle = AsyncMock(return_value=True)
 
         app.dependency_overrides[get_delete_user_handler] = lambda: mock_handler
-        app.dependency_overrides[get_unit_of_work] = create_mock_uow
+        app.dependency_overrides[get_iam_unit_of_work] = create_mock_uow
         client = TestClient(app)
 
         response = client.delete("/v1/users/12345678-1234-5678-1234-567812345678")
@@ -421,7 +421,7 @@ class TestDeleteUserEndpoint:
         )
 
         app.dependency_overrides[get_delete_user_handler] = lambda: mock_handler
-        app.dependency_overrides[get_unit_of_work] = create_mock_uow
+        app.dependency_overrides[get_iam_unit_of_work] = create_mock_uow
         client = TestClient(app)
 
         response = client.delete("/v1/users/00000000-0000-0000-0000-000000000000")

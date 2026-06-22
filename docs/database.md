@@ -76,7 +76,7 @@ Both databases are managed through the infrastructure layer's lifespan context:
 ```python
 # app/infrastructure/setup.py
 @asynccontextmanager
-async def clean_architecture_lifespan(app: FastAPI):
+async def app_lifespan(app: FastAPI):
     # Startup: Initialize both databases
     await postgres_manager.connect()
     await mongodb_manager.connect()

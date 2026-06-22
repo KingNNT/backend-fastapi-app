@@ -37,6 +37,7 @@ pre-commit = "^4.2.0"
 pyright = "^1.1.402"
 mypy = "^1.16.1"
 testcontainers = {extras = ["postgres", "mongodb"], version = "^4.0"}
+import-linter = ">=2.0,<3.0"
 
 [tool.ruff]
 line-length = 88
@@ -67,4 +68,100 @@ filterwarnings = [
     "ignore:Accessing the 'model_fields' attribute:pydantic.warnings.PydanticDeprecatedSince211",
     # Ignore pytest-asyncio event_loop fixture redefinition warning (needed for session-scoped fixtures)
     "ignore:The event_loop fixture provided by pytest-asyncio:DeprecationWarning",
+]
+
+
+# =============================================================================
+# import-linter — Architectural rule enforcement
+# =============================================================================
+# These contracts describe the CURRENT (layer-first) architecture.
+# They will be replaced by Bounded-Context contracts during the refactor
+# (see docs/superpowers/specs/2026-06-21-bc-modular-monolith-refactor-design.md).
+[tool.importlinter]
+root_packages = ["app"]
+include_external_packages = true
+
+# Contract A: Presentation depends on Application, not the other way around.
+# Contract B: Domain has zero infrastructure / framework imports.
+# (Old layer-first contracts removed - app.core/ is gone after Phase 4.
+#  BC-specific layer contracts are defined further below.)
+
+[[tool.importlinter.contracts]]
+name = "Shared kernel is dependency-free"
+type = "forbidden"
+source_modules = ["app.shared"]
+forbidden_modules = ["app.core", "app.platform", "app.presentation", "app.infrastructure"]
+
+[[tool.importlinter.contracts]]
+name = "Platform cannot import BC domain/application code"
+type = "forbidden"
+source_modules = ["app.platform"]
+forbidden_modules = ["app.core.domain", "app.core.application"]
+ignore_imports = [
+    "app.platform.web.exception_handlers -> app.iam.domain.user.exceptions",
+]
+
+
+[[tool.importlinter.contracts]]
+name = "IAM layer boundaries"
+type = "layers"
+layers = [
+    "app.iam.presentation",
+    "app.iam.application",
+    "app.iam.domain",
+]
+
+[[tool.importlinter.contracts]]
+name = "IAM domain has no infrastructure or framework imports"
+type = "forbidden"
+source_modules = ["app.iam.domain"]
+forbidden_modules = [
+    "app.iam.infrastructure",
+    "app.infrastructure",
+    "app.platform",
+    "app.presentation",
+    "fastapi",
+    "sqlmodel",
+    "sqlalchemy",
+    "beanie",
+    "motor",
+]
+
+[[tool.importlinter.contracts]]
+name = "IAM does not import from audit BC"
+type = "forbidden"
+source_modules = ["app.iam"]
+forbidden_modules = ["app.audit"]
+
+[[tool.importlinter.contracts]]
+name = "Audit layer boundaries"
+type = "layers"
+layers = [
+    "app.audit.presentation",
+    "app.audit.application",
+    "app.audit.domain",
+]
+
+[[tool.importlinter.contracts]]
+name = "Audit domain has no infrastructure or framework imports"
+type = "forbidden"
+source_modules = ["app.audit.domain"]
+forbidden_modules = [
+    "app.audit.infrastructure",
+    "app.infrastructure",
+    "app.platform",
+    "app.presentation",
+    "fastapi",
+    "beanie",
+    "motor",
+    "pymongo",
+]
+
+[[tool.importlinter.contracts]]
+name = "Audit does not import from iam BC"
+type = "forbidden"
+source_modules = ["app.audit"]
+forbidden_modules = ["app.iam"]
+ignore_imports = [
+    "app.audit.infrastructure.event_handlers.iam_event_translator -> app.iam.domain.user.events",
 ]

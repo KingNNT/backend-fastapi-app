@@ -1,48 +1,43 @@
-"""
-Application entry point with Clean Architecture.
+"""Application entry point - BC Modular Monolith.
 
-This FastAPI application follows Clean Architecture + DDD + CQRS patterns:
-- Domain Layer: Pure business logic (core/domain/)
-- Application Layer: CQRS handlers (core/application/)
-- Presentation Layer: API controllers (presentation/)
-- Infrastructure Layer: Database implementations (infrastructure/)
+Each Bounded Context exposes its own router via app.<bc>.presentation.api.
+The composition root (this file) wires everything together.
 """
 
 import logging.config
 
 from fastapi import FastAPI
 
-from app.infrastructure.configs import (
+from app.audit.presentation.api import router as audit_router
+from app.iam.presentation.api import router as iam_router
+from app.infrastructure.setup import app_lifespan
+from app.platform.configs import (
     get_app_config,
     get_app_version,
     get_log_config,
 )
-from app.infrastructure.setup import clean_architecture_lifespan
-from app.infrastructure.web import (
+from app.platform.web import (
     RequestLoggingMiddleware,
     SecurityHeadersMiddleware,
     register_exception_handlers,
 )
-from app.presentation.api import api_router
+from app.presentation.api import router as system_router
 
 config = get_app_config()
 
-# Configure global logging with dictConfig
 logging.config.dictConfig(get_log_config(config.log_level))
 
 app = FastAPI(
     title=config.name,
     version=get_app_version(),
     description=config.description,
-    lifespan=clean_architecture_lifespan,
+    lifespan=app_lifespan,
 )
 
-# Register exception handlers for domain exceptions
 register_exception_handlers(app)
-
-# Add middleware
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
-# Include API routers
-app.include_router(api_router)
+app.include_router(system_router)
+app.include_router(iam_router, prefix="/v1")
+app.include_router(audit_router, prefix="/v1")

@@ -18,13 +18,13 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import SQLModel
 
-from app.infrastructure.persistence.mongodb.database import mongo_db_manager
-from app.infrastructure.persistence.mongodb.models.log import LogModel
-from app.infrastructure.persistence.postgresql.database import postgres_db_manager
-from app.infrastructure.persistence.postgresql.models import UserModel
+from app.audit.infrastructure.persistence.mongodb.models.log import LogModel
+from app.iam.infrastructure.persistence.postgresql.models import UserModel
+from app.iam.presentation.api import router as api_router
 from app.infrastructure.setup import setup_app_services
-from app.infrastructure.web import register_exception_handlers
-from app.presentation.api import api_router
+from app.platform.persistence.mongodb.database import mongo_db_manager
+from app.platform.persistence.postgresql.database import postgres_db_manager
+from app.platform.web import register_exception_handlers
 
 # Mark all tests in this directory as e2e tests
 pytestmark = pytest.mark.e2e
@@ -74,7 +74,7 @@ async def test_app(setup_test_databases) -> AsyncGenerator[FastAPI, None]:
     """
     app = FastAPI()
     register_exception_handlers(app)
-    app.include_router(api_router)
+    app.include_router(api_router, prefix="/v1")
 
     yield app
 

@@ -1,5 +1,14 @@
 """Presentation layer DTOs."""
 
+from app.platform.web.response_dtos import (
+    BadRequestResponse,
+    ConflictResponse,
+    CreatedResponse,
+    ErrorResponse,
+    NotFoundResponse,
+    SuccessResponse,
+    ValidationErrorResponse,
+)
 from app.presentation.dtos.log import (
     LogCreateRequest,
     LogListResponse,
@@ -10,15 +19,6 @@ from app.presentation.dtos.permission import (
     PermissionListResponse,
     PermissionResponse,
     PermissionUpdateRequest,
-)
-from app.presentation.dtos.response import (
-    BadRequestResponse,
-    ConflictResponse,
-    CreatedResponse,
-    ErrorResponse,
-    NotFoundResponse,
-    SuccessResponse,
-    ValidationErrorResponse,
 )
 from app.presentation.dtos.role import (
     AssignPermissionRequest,

@@ -5,19 +5,19 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.core.application.queries import (
-    GetUserByEmailQuery,
-    GetUserByIdQuery,
-    GetUserByUsernameQuery,
-    ListUsersQuery,
-)
-from app.core.application.queries.handlers import (
+from app.iam.application.handlers import (
     GetUserByEmailHandler,
     GetUserByIdHandler,
     GetUserByUsernameHandler,
     ListUsersHandler,
 )
-from app.core.application.read_models import UserReadModel
+from app.iam.application.queries.user import (
+    GetUserByEmailQuery,
+    GetUserByIdQuery,
+    GetUserByUsernameQuery,
+    ListUsersQuery,
+)
+from app.iam.application.read_models.user_read_model import UserReadModel
 
 
 @pytest.fixture

@@ -4,13 +4,13 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from app.core.domain.aggregates.log import LogAggregate
-from app.core.domain.value_objects.action import Action
-from app.infrastructure.persistence.mongodb.repositories.log_read import (
+from app.audit.domain.log.aggregate import LogAggregate
+from app.audit.domain.log.value_objects import Action
+from app.audit.infrastructure.persistence.mongodb.repositories.log_read import (
     MongoLogReadModelRepository,
     MongoLogReadRepository,
 )
-from app.infrastructure.persistence.mongodb.repositories.log_write import (
+from app.audit.infrastructure.persistence.mongodb.repositories.log_write import (
     MongoLogWriteRepository,
 )
 
